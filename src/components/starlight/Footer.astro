@@ -1,6 +1,7 @@
 ---
 import Default from '@astrojs/starlight/components/Footer.astro';
 import { getRelease } from '../../lib/releases';
+import MermaidLoader from './MermaidLoader.astro';
 
 /** Default Starlight footer plus the release a synced docs page was built from. */
 const { id } = Astro.locals.starlightRoute;
@@ -17,6 +18,7 @@ const version = release?.version ?? null;
   )
 }
 <Default {...Astro.props}><slot /></Default>
+<MermaidLoader />
 
 <style>
   .dr-docs-version {
