@@ -1,0 +1,41 @@
+---
+/** Renders `<pre class="mermaid">` blocks (see remark-mermaid.ts); mermaid is only fetched on pages that have one. */
+---
+
+<script>
+  const blocks = [...document.querySelectorAll<HTMLElement>('pre.mermaid')];
+  if (blocks.length > 0) {
+    for (const block of blocks) block.dataset.source = block.textContent ?? '';
+    const { default: mermaid } = await import('mermaid');
+
+    // Re-render from the original source whenever Starlight switches between light and dark.
+    const render = async () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+      for (const block of blocks) {
+        block.removeAttribute('data-processed');
+        block.textContent = block.dataset.source ?? '';
+      }
+      try {
+        await mermaid.run({ nodes: blocks });
+      } catch (error) {
+        console.error('mermaid: diagram failed to render, showing its source instead', error);
+      }
+    };
+
+    await render();
+    new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+</script>
+
+<style is:global>
+  pre.mermaid {
+    margin-block: 1.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    text-align: center;
+    background: transparent;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.5rem;
+  }
+</style>

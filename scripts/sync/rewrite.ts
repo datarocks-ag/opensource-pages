@@ -51,6 +51,7 @@ export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
     else if (node.type === 'image') node.url = rewriteUrl(node.url, ctx, true);
     else if (node.type === 'html') node.value = rewriteHtml(node.value, ctx);
   });
+  mermaidToHtml(tree);
 
   const kept = filterFrontmatter(tree.children[0]?.type === 'yaml' ? tree.children.shift()!.value : '', ctx.warn);
   const lines = [...kept.lines];
@@ -157,6 +158,19 @@ function isBadge(node: Nodes): boolean {
 }
 
 /** Removes badge images, links that wrap only badges, and paragraphs left empty by that. */
+/**
+ * Replaces ```mermaid fences with `<pre class="mermaid">` so Expressive Code leaves them alone and
+ * MermaidLoader.astro renders them in the browser. A raw `<pre>` block runs until `</pre>`, so blank
+ * lines inside the diagram are safe.
+ */
+function mermaidToHtml(tree: Root): void {
+  visit(tree, 'code', (node, index, parent) => {
+    if (node.lang !== 'mermaid' || !parent || index === undefined) return;
+    const escaped = node.value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    parent.children.splice(index, 1, { type: 'html', value: `<pre class="mermaid">${escaped}</pre>` });
+  });
+}
+
 function removeBadges(tree: Root): void {
   const onlyBadges = (n: Link): boolean =>
     n.children.length > 0 && n.children.every((c) => isBadge(c) || (c.type === 'text' && !c.value.trim()));

@@ -42,7 +42,7 @@ const fixture = (repo: string): FakeRepo => {
       [`${dir}/getting-started.md`]: '# Getting started\n\nBegin.\n',
       // Dot and uppercase in file names: link target and published route must agree.
       [`${dir}/upgrading-to-2.0.md`]: '# Upgrading to 2.0\n\nBack to the [setup](guide/setup.md) or the [architecture](ARCHITECTURE.md).\n',
-      [`${dir}/ARCHITECTURE.md`]: '# Architecture\n\nSee [upgrading](upgrading-to-2.0.md#steps).\n',
+      [`${dir}/ARCHITECTURE.md`]: '# Architecture\n\nSee [upgrading](upgrading-to-2.0.md#steps).\n\n```mermaid\ngraph LR\n  A --> B\n```\n',
       // No heading and no frontmatter: the title must come from the file name.
       [`${dir}/untitled-page.md`]: 'Just a paragraph without any heading.\n',
     },
@@ -207,6 +207,12 @@ describe('links', () => {
     expect(h).toContain('href="/postgres-provisioner/docs/upgrading-to-2-0/"');
     expect(existsSync(page('/postgres-provisioner/docs/upgrading-to-2-0'))).toBe(true);
     expect(existsSync(page('/postgres-provisioner/docs/architecture'))).toBe(true);
+  });
+
+  test('mermaid diagrams ship as diagram containers with the loader script', () => {
+    const h = html('/postgres-provisioner/docs/architecture');
+    expect(h).toContain('<pre class="mermaid">graph LR\n  A --&gt; B</pre>');
+    expect(h).toMatch(/<script type="module" src="\/_astro\/[^"]+\.js"/);
   });
 
   test('docs sidebar is grouped, with a GitHub link in the top bar', () => {

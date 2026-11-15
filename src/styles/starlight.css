@@ -44,3 +44,8 @@ h4 {
   --sl-color-accent-high: #c4c0ff;
   --sl-color-black: var(--dr-code-bg);
 }
+
+/* Wider docs column than Starlight's 45rem: synced docs carry long config and command examples. */
+:root {
+  --sl-content-width: 60rem;
+}

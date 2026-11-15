@@ -183,3 +183,13 @@ test('empty title or description is dropped so the H1 title applies', () => {
     expect(out).not.toContain('description');
   }
 });
+
+test('mermaid code blocks become escaped diagram containers', () => {
+  const out = rewriteMarkdown('# T\n\n```mermaid\ngraph LR\n  A["<b>a & b</b>"] --> B\n\n  B --> C\n```\n', ctx);
+  expect(out).toContain('<pre class="mermaid">graph LR\n  A["&lt;b&gt;a &amp; b&lt;/b&gt;"] --&gt; B\n\n  B --&gt; C</pre>');
+  expect(out).not.toContain('```mermaid');
+});
+
+test('other code blocks stay fenced', () => {
+  expect(rewriteMarkdown('# T\n\n```yaml\nkey: value\n```\n', ctx)).toContain('```yaml\nkey: value\n```');
+});
