@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { rewriteMarkdown } from '../scripts/sync/rewrite.ts';
+import { docSlug } from '../src/lib/doc-slug.ts';
+import { FrontmatterError, rewriteMarkdown } from '../scripts/sync/rewrite.ts';
 
 const ctx = { repo: 'postgres-provisioner', tag: 'v2.0.0', docsPath: 'docs', filePath: 'docs/howto/app-migrations.md' };
 const gh = 'https://github.com/datarocks-ag/postgres-provisioner';
@@ -50,10 +51,9 @@ test('no H1 → title from file name', () => {
   expect(out).toContain('title: "Getting started"');
 });
 
-test('existing frontmatter title wins and is kept verbatim; H1 stays', () => {
+test('existing frontmatter title wins; H1 stays', () => {
   const out = rewriteMarkdown('---\ntitle: Mine\nsidebar:\n  order: 2\n---\n# Heading\n', ctx);
-  expect(out).toContain('title: Mine\nsidebar:\n  order: 2\neditUrl:');
-  expect(out).not.toContain('title: "');
+  expect(out).toContain('title: "Mine"\nsidebar:\n  order: 2\neditUrl:');
   expect(out).toContain('# Heading');
 });
 
@@ -111,4 +111,35 @@ test('relative src and href in raw HTML are rewritten', () => {
   expect(out).toContain('href="https://x.y/z"');
   expect(out).toContain('href="#t"');
   expect(out).toContain('href="mailto:a@b.c"');
+});
+
+test('link to a dotted file name uses the same slug the page is published under', () => {
+  const out = rewriteMarkdown('[u](../upgrading-to-2.0.md#steps)', ctx);
+  expect(out).toContain('](/postgres-provisioner/docs/upgrading-to-2-0/#steps)');
+  const page = rewriteMarkdown('# U', { ...ctx, filePath: 'docs/upgrading-to-2.0.md', slug: docSlug('postgres-provisioner', 'upgrading-to-2.0.md') });
+  expect(page).toContain('slug: "postgres-provisioner/docs/upgrading-to-2-0"');
+});
+
+test('uppercase and README file names slug consistently', () => {
+  expect(docSlug('r', 'ARCHITECTURE.md')).toBe('r/docs/architecture');
+  expect(docSlug('r', 'sub/README.md')).toBe('r/docs/sub');
+  expect(docSlug('r', 'index.md')).toBe('r/docs');
+});
+
+test('only title, description and sidebar survive from repo frontmatter', () => {
+  const src = '---\ntitle: Mine\ndescription: "D"\nslug: evil\neditUrl: false\ntemplate: splash\nhead:\n  - tag: script\nsidebar:\n  order: 2\n  badge: new\n---\nBody\n';
+  const out = rewriteMarkdown(src, ctx);
+  expect(out).toMatch(/^---\ntitle: "Mine"\ndescription: "D"\nsidebar:\n  order: 2\neditUrl: .*\n---\n/);
+  expect(out).not.toMatch(/evil|splash|tag: script|badge/);
+});
+
+test('frontmatter values the schema would reject are dropped', () => {
+  const out = rewriteMarkdown('---\ntitle: 3\nsidebar: 3\n---\n# Real\n', ctx);
+  expect(out).toContain('title: "Real"');
+  expect(out).not.toContain('sidebar');
+});
+
+test('unparseable frontmatter throws FrontmatterError', () => {
+  expect(() => rewriteMarkdown('---\ntitle: "open\n---\nBody', ctx)).toThrow(FrontmatterError);
+  expect(() => rewriteMarkdown('---\n- just\n- a list\n---\nBody', ctx)).toThrow(FrontmatterError);
 });

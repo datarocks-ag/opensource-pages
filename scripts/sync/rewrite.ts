@@ -6,6 +6,7 @@ import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
+import { docUrl } from '../../src/lib/doc-slug.ts';
 
 /** Context for rewriting one markdown file fetched from a repo at a release tag. */
 export interface RewriteContext {
@@ -16,6 +17,16 @@ export interface RewriteContext {
   filePath: string;
   /** True when the repo's CHANGELOG.md is published as the site's changelog page. */
   changelogOnSite?: boolean;
+  /** Site slug the page is published under, written as `slug` frontmatter. Omitted: Starlight derives it. */
+  slug?: string;
+}
+
+/** Repo frontmatter that cannot be parsed; the file must be skipped. */
+export class FrontmatterError extends Error {
+  constructor(reason: string) {
+    super(`unusable frontmatter: ${reason}`);
+    this.name = 'FrontmatterError';
+  }
 }
 
 const ORG = 'datarocks-ag';
@@ -25,7 +36,9 @@ const BADGE = /\/actions\/workflows\/|badge|\.badges\//i;
 /**
  * Rewrites a markdown file from a repo so it works as a Starlight page: relative links point at
  * site pages or GitHub, relative images at raw.githubusercontent, badges are dropped, and
- * `title`/`editUrl` frontmatter is set (an existing frontmatter block is kept verbatim).
+ * `title`/`editUrl`/`slug` frontmatter is set. Of an existing frontmatter block only `title`,
+ * `description` and `sidebar` survive, so a repo cannot break the site's content schema.
+ * Throws {@link FrontmatterError} when the block cannot be parsed.
  */
 export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
   const tree = unified().use(remarkParse).use(remarkFrontmatter, ['yaml']).use(remarkGfm).parse(source) as Root;
@@ -37,14 +50,11 @@ export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
     else if (node.type === 'html') node.value = rewriteHtml(node.value, ctx);
   });
 
-  const frontmatter = tree.children[0]?.type === 'yaml' ? tree.children.shift()!.value : '';
-  const lines = frontmatter ? [frontmatter] : [];
-  if (!/^title\s*:/m.test(frontmatter)) {
-    lines.push(`title: ${JSON.stringify(extractTitle(tree) ?? titleFromFile(ctx.filePath))}`);
-  }
-  if (!/^editUrl\s*:/m.test(frontmatter)) {
-    lines.push(`editUrl: https://github.com/${ORG}/${ctx.repo}/edit/main/${ctx.filePath}`);
-  }
+  const kept = filterFrontmatter(tree.children[0]?.type === 'yaml' ? tree.children.shift()!.value : '');
+  const lines = [...kept.lines];
+  if (!kept.hasTitle) lines.unshift(`title: ${JSON.stringify(extractTitle(tree) ?? titleFromFile(ctx.filePath))}`);
+  lines.push(`editUrl: https://github.com/${ORG}/${ctx.repo}/edit/main/${ctx.filePath}`);
+  if (ctx.slug) lines.push(`slug: ${JSON.stringify(ctx.slug)}`);
 
   const body = unified()
     .use(remarkGfm)
@@ -52,6 +62,72 @@ export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
     .stringify(tree);
   const head = `---\n${lines.join('\n')}\n---\n`;
   return body.trim() ? `${head}\n${body}` : head;
+}
+
+const SIDEBAR_KEYS = new Set(['order', 'label', 'hidden']);
+
+/**
+ * Reduces a YAML frontmatter block to `title`, `description` and `sidebar` (`order`, `label`,
+ * `hidden`). Only the plain `key: value` subset is understood, because the sync has no YAML parser;
+ * anything else at the top level means the block is unparseable. Values that would not pass the
+ * content schema (non-string title, non-numeric order) are dropped.
+ */
+function filterFrontmatter(block: string): { lines: string[]; hasTitle: boolean } {
+  const out: string[] = [];
+  let hasTitle = false;
+  const rows = block.split(/\r?\n/);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.trim() || row.trimStart().startsWith('#')) continue;
+    const m = /^([A-Za-z_][\w-]*)\s*:\s*(.*)$/.exec(row);
+    if (!m) throw new FrontmatterError(`cannot parse line "${row.trim().slice(0, 40)}"`);
+    const [, key, rest] = m;
+    const nested: string[] = [];
+    while (i + 1 < rows.length && (/^\s+\S/.test(rows[i + 1]) || !rows[i + 1].trim())) nested.push(rows[++i]);
+    if (key === 'title' || key === 'description') {
+      const value = scalarString(rest.trim());
+      if (value === undefined || nested.some((n) => n.trim())) continue;
+      if (key === 'title') hasTitle = true;
+      out.push(`${key}: ${JSON.stringify(value)}`);
+    } else if (key === 'sidebar') {
+      const items = sidebarLines(rest.trim(), nested);
+      if (items.length > 0) out.push('sidebar:', ...items);
+    }
+  }
+  return { lines: out, hasTitle };
+}
+
+/** The string a plain or quoted YAML scalar holds; undefined for block scalars, flow values and non-strings. */
+function scalarString(raw: string): string | undefined {
+  if (!raw) return undefined;
+  if (raw.startsWith('"')) {
+    try {
+      const v: unknown = JSON.parse(raw);
+      return typeof v === 'string' ? v : undefined;
+    } catch {
+      throw new FrontmatterError(`unterminated or invalid quoted value ${raw.slice(0, 40)}`);
+    }
+  }
+  if (raw.startsWith("'")) {
+    if (raw.length < 2 || !raw.endsWith("'")) throw new FrontmatterError(`unterminated quoted value ${raw.slice(0, 40)}`);
+    return raw.slice(1, -1).replace(/''/g, "'");
+  }
+  if (/^[|>&*!\[{@`%]/.test(raw) || /^(null|~|true|false|[-+]?[\d.]+)$/i.test(raw)) return undefined;
+  return raw.replace(/\s+#.*$/, '');
+}
+
+function sidebarLines(rest: string, nested: string[]): string[] {
+  if (rest) return [];
+  const out: string[] = [];
+  for (const row of nested) {
+    const m = /^\s+([A-Za-z_][\w-]*)\s*:\s*(.+?)\s*$/.exec(row);
+    if (!m || !SIDEBAR_KEYS.has(m[1])) continue;
+    const value = m[2].replace(/\s+#.*$/, '');
+    const ok = m[1] === 'order' ? /^\d+$/.test(value) : m[1] === 'hidden' ? /^(true|false)$/.test(value) : scalarString(value) !== undefined;
+    if (!ok) continue;
+    out.push(`  ${m[1]}: ${m[1] === 'label' ? JSON.stringify(scalarString(value)) : value}`);
+  }
+  return out;
 }
 
 function isBadge(node: Nodes): boolean {
@@ -95,14 +171,11 @@ function rewriteUrl(url: string, ctx: RewriteContext, isImage: boolean): string 
   const resolved = path.startsWith('/') ? posix.normalize(path.slice(1)) : posix.join(posix.dirname(ctx.filePath), path);
   if (resolved.startsWith('..')) return url;
 
-  if (!isImage && ctx.changelogOnSite && resolved === 'CHANGELOG.md') return `/${ctx.repo}/docs/changelog/${suffix}`;
+  if (!isImage && ctx.changelogOnSite && resolved === 'CHANGELOG.md') return `${docUrl(ctx.repo, 'changelog')}${suffix}`;
 
   const docsPrefix = `${ctx.docsPath.replace(/\/+$/, '')}/`;
   if (!isImage && /\.mdx?$/.test(resolved) && resolved.startsWith(docsPrefix)) {
-    const segments = resolved.slice(docsPrefix.length).replace(/\.mdx?$/, '').split('/');
-    if (/^(index|readme)$/i.test(segments[segments.length - 1])) segments.pop();
-    const slug = segments.map((s) => s.toLowerCase()).join('/');
-    return `/${ctx.repo}/docs/${slug ? `${slug}/` : ''}${suffix}`;
+    return `${docUrl(ctx.repo, resolved.slice(docsPrefix.length))}${suffix}`;
   }
   const base = isImage
     ? `https://raw.githubusercontent.com/${ORG}/${ctx.repo}/${ctx.tag}`
