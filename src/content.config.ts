@@ -1,6 +1,8 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { docsLoader } from '@astrojs/starlight/loaders';
+import { docsSchema } from '@astrojs/starlight/schema';
 
 // Keep in sync with the hand-written validation in src/lib/project-data.ts, which the
 // Node sync script uses outside Astro.
@@ -64,4 +66,8 @@ const collectionDefs = defineCollection({
   }),
 });
 
-export const collections = { projects, collections: collectionDefs };
+export const collections = {
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+  projects,
+  collections: collectionDefs,
+};

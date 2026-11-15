@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import type { ReleaseInfo } from '../../scripts/sync/sync.ts';
 
 export type { ReleaseInfo };
 
-const file = join(dirname(fileURLToPath(import.meta.url)), '../generated/releases.json');
+// Resolved from the project root (cwd), not import.meta.url: Astro bundles this module into dist/chunks.
+const file = join(process.cwd(), 'src/generated/releases.json');
 
 /** Release info written by `pnpm sync`; an all-null entry when the file or repo is missing. */
 export function getRelease(repo: string): ReleaseInfo {
