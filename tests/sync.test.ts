@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import type { ProjectData } from '../src/lib/project-data.ts';
 import { createGitHubClient, GitHubError } from '../scripts/sync/github.ts';
+import { getRelease } from '../src/lib/releases.ts';
 import { syncAll, syncProject } from '../scripts/sync/sync.ts';
 import { fakeClient } from './fixtures/github/fake-client.ts';
 
@@ -29,10 +30,10 @@ test('docs and changelog are written from the release tag', async () => {
 });
 
 test('tag without docs folder → docsAvailable false, nothing written', async () => {
-  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: {} } });
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: {}, changelog: '# C' } });
   const info = await syncProject(pg, gh, tmp);
   expect(info).toMatchObject({ version: 'v2.0.0', docsAvailable: false, changelogAvailable: false });
-  expect(existsSync(join(tmp, 'postgres-provisioner'))).toBe(false);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs'))).toBe(false);
 });
 
 test('no release → version null and default branch never read', async () => {
@@ -84,4 +85,30 @@ test('github client maps 404 to null and sends the token', async () => {
   expect(await gh.listFiles('r', 'v1', 'docs')).toEqual(['docs/a.md']);
   expect(seen[0].auth).toBe('Bearer tok');
   await expect(gh.readFile('r', 'v1', 'x')).rejects.toBeInstanceOf(GitHubError);
+});
+
+test('failure after some files were written removes partial docs', async () => {
+  const base = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/a.md': 'A', 'docs/b.md': 'B' } } });
+  let reads = 0;
+  const gh = { ...base, async readFile(repo: string, ref: string, path: string) {
+    if (++reads > 1) throw new GitHubError(502, 'https://api.github.com/x');
+    return base.readFile(repo, ref, path);
+  } };
+  const info = await syncProject(pg, gh, tmp);
+  expect(info).toMatchObject({ version: null, docsAvailable: false });
+  expect(info.warnings[0]).toMatch(/502/);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs'))).toBe(false);
+});
+
+test('truncated git tree is an error, not a silent empty listing', async () => {
+  const fetchStub = (async () => Response.json({ truncated: true, tree: [] })) as unknown as typeof fetch;
+  const gh = createGitHubClient({ owner: 'o', fetch: fetchStub });
+  await expect(gh.listFiles('r', 'v1', 'docs')).rejects.toThrow(/truncated/);
+});
+
+test('getRelease returns an all-null entry for an unknown repo', () => {
+  expect(getRelease('no-such-repo')).toEqual({
+    repo: 'no-such-repo', version: null, tag: null, publishedAt: null, license: null,
+    docsAvailable: false, changelogAvailable: false, warnings: [],
+  });
 });

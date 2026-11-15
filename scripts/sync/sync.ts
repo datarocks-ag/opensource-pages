@@ -28,7 +28,10 @@ export async function syncProject(p: ProjectData, gh: GitHubClient, docsRoot: st
   try {
     return await sync(p, gh, docsRoot);
   } catch (e) {
-    const reason = e instanceof Error ? e.message : String(e);
+    // Never leave partial docs behind: Astro would publish them while releases.json says unavailable.
+    rmSync(join(docsRoot, p.repo, 'docs'), { recursive: true, force: true });
+    let reason = e instanceof Error ? e.message : String(e);
+    if (e instanceof Error && e.cause !== undefined) reason += ` (cause: ${String(e.cause)})`;
     return emptyInfo(p.repo, [`${p.repo}: sync failed: ${reason}`]);
   }
 }
@@ -60,9 +63,15 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
   }
   if (written === 0) warnings.push(`${p.repo}: no docs found in ${p.docsPath}/ at ${tag}`);
 
-  const changelog = await gh.readFile(p.repo, tag, 'CHANGELOG.md');
-  if (changelog !== null) write(join(docsDir, 'changelog.md'), changelog);
-  else warnings.push(`${p.repo}: no CHANGELOG.md at ${tag}`);
+  // The changelog page lives inside the docs folder, so it only exists when there are docs.
+  let changelogAvailable = false;
+  if (written > 0) {
+    const changelog = await gh.readFile(p.repo, tag, 'CHANGELOG.md');
+    if (changelog !== null) {
+      write(join(docsDir, 'changelog.md'), changelog);
+      changelogAvailable = true;
+    } else warnings.push(`${p.repo}: no CHANGELOG.md at ${tag}`);
+  }
 
   return {
     repo: p.repo,
@@ -71,7 +80,7 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
     publishedAt: release.publishedAt,
     license,
     docsAvailable: written > 0,
-    changelogAvailable: changelog !== null,
+    changelogAvailable,
     warnings,
   };
 }

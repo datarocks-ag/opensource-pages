@@ -56,6 +56,9 @@ export function createGitHubClient(opts: { owner: string; token?: string; fetch?
     async listFiles(repo, ref, dir) {
       const body = await json(`${base(repo)}/git/trees/${encodeURIComponent(ref)}?recursive=1`);
       if (!body) return [];
+      if (body.truncated) {
+        throw new Error(`git tree of ${opts.owner}/${repo}@${ref} is truncated; docs listing would be incomplete`);
+      }
       const prefix = `${dir.replace(/\/+$/, '')}/`;
       return (body.tree as { path: string; type: string }[])
         .filter((e) => e.type === 'blob' && e.path.startsWith(prefix))
