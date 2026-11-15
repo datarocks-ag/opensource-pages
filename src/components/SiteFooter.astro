@@ -1,0 +1,38 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="dr-container bar">
+    <p>© {year} Data Rocks AG · MIT licensed</p>
+    <nav aria-label="Footer">
+      <a href="https://opensource.org/license/mit">MIT</a>
+      <a href="https://github.com/datarocks-ag">GitHub</a>
+      <a href="https://datarocks.ch">datarocks.ch</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--dr-border);
+    background: #fff;
+    color: var(--dr-muted);
+    font-size: 0.875rem;
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+  p {
+    margin: 0;
+  }
+  nav {
+    display: flex;
+    gap: 1.25rem;
+  }
+</style>

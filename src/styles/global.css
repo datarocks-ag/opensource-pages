@@ -1,0 +1,65 @@
+@import '@fontsource/montserrat/500.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/700.css';
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/600.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--dr-bg);
+  color: var(--dr-text);
+  font-family: var(--dr-font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--dr-navy);
+  font-family: var(--dr-font-head);
+  line-height: 1.2;
+}
+
+a {
+  color: var(--dr-accent);
+}
+
+code,
+pre {
+  font-family: var(--dr-font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--dr-accent);
+  outline-offset: 2px;
+}
+
+.dr-container {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 48rem) {
+  .dr-container {
+    padding: 0 2rem;
+  }
+}
