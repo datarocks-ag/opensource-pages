@@ -1,5 +1,6 @@
-/** Copy supplied by Data Rocks. Placeholders stay in square brackets until it arrives. */
-export const aboutDataRocks = '[ONE OR TWO LINES ON WHAT DATA ROCKS DOES AND FOR WHOM]';
+/** Site copy written with Data Rocks; shown in the brand band and on the provisioners page. */
+export const aboutDataRocks =
+  "We build the platforms we'd want to run ourselves: solid architecture, modular by design, ready to scale. The tools on this site are the ones we use to run them.";
 
 /** Shown on the provisioners collection page. */
 export const collectionUsage =
