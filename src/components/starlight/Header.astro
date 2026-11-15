@@ -20,7 +20,7 @@ const shouldRenderSearch =
   <div class="right-group sl-flex print:hidden">
     {shouldRenderSearch && <Search />}
     <div class="sl-hidden md:sl-flex social-icons"><SocialIcons /></div>
-    <div class="sl-hidden md:sl-flex"><ThemeSelect /></div>
+    <div class="sl-hidden md:sl-flex theme-select"><ThemeSelect /></div>
     <div class="sl-hidden md:sl-flex"><LanguageSelect /></div>
   </div>
 </div>
@@ -45,10 +45,46 @@ const shouldRenderSearch =
     align-items: center;
   }
 
+  /* Takes the free space so the search can grow; its items stay right-aligned. */
+  .right-group {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
   .right-group,
   .social-icons {
     gap: 1rem;
     align-items: center;
+  }
+  /*
+   * Starlight sizes the search button to its container; in the right group that is only its label.
+   * It shrinks well before the project selector does, so narrow desktops keep the project readable.
+   */
+  @media (min-width: 50rem) {
+    .right-group :global(button[data-open-modal]) {
+      flex: 0 1 22rem;
+      min-width: 10rem;
+      max-width: 22rem;
+    }
+  }
+  /*
+   * Icon-only theme switch: keep Starlight's native select (keyboard and screen-reader support,
+   * stored preference) but hide its text and caret, leaving the sun / moon / laptop icon.
+   */
+  .theme-select :global(label) {
+    --sl-label-icon-size: 1rem;
+  }
+  .theme-select :global(.label-icon) {
+    inset-inline-start: 0.5rem;
+  }
+  .theme-select :global(.caret) {
+    display: none;
+  }
+  .theme-select :global(select) {
+    width: 2rem;
+    margin-inline: 0;
+    padding-inline: 0;
+    color: transparent;
   }
   .social-icons::after {
     content: '';
