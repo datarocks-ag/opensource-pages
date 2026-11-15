@@ -19,14 +19,14 @@ beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), 'sync-')); });
 afterEach(() => rmSync(tmp, { recursive: true, force: true }));
 
 test('docs and changelog are written from the release tag', async () => {
-  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', license: 'Apache-2.0', files: { 'docs/index.md': '# PG', 'docs/guide/a.mdx': 'A', 'docs/img.png': 'x' }, changelog: '# Changelog' } });
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', license: 'Apache-2.0', files: { 'docs/index.md': '# PG\n\n[c](../CHANGELOG.md)', 'docs/guide/a.mdx': 'A', 'docs/img.png': 'x' }, changelog: '# Changelog\n\nSee [license](LICENSE).' } });
   const info = await syncProject(pg, gh, tmp);
   expect(info).toMatchObject({ version: 'v2.0.0', tag: 'v2.0.0', license: 'Apache-2.0', docsAvailable: true, changelogAvailable: true, warnings: [] });
   expect(gh.calls.listFiles).toEqual([['postgres-provisioner', 'v2.0.0', 'docs']]);
-  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8')).toBe('# PG');
+  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8')).toMatch(/^---\ntitle: "PG"\neditUrl: .*\/edit\/main\/docs\/index\.md\n---\n\n\[c\]\(https:\/\/github\.com\/datarocks-ag\/postgres-provisioner\/blob\/v2\.0\.0\/CHANGELOG\.md\)/);
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/guide/a.mdx'))).toBe(true);
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/img.png'))).toBe(false);
-  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/changelog.md'), 'utf8')).toBe('# Changelog');
+  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/changelog.md'), 'utf8')).toMatch(/title: "Changelog"[\s\S]*\]\(https:\/\/github\.com\/datarocks-ag\/postgres-provisioner\/blob\/v2\.0\.0\/LICENSE\)/);
 });
 
 test('tag without docs folder → docsAvailable false, nothing written', async () => {

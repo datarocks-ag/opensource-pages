@@ -76,7 +76,7 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
   if (written > 0) {
     const changelog = await gh.readFile(p.repo, tag, 'CHANGELOG.md');
     if (changelog !== null) {
-      write(join(docsDir, 'changelog.md'), changelog);
+      write(join(docsDir, 'changelog.md'), rewriteMarkdown(changelog, { repo: p.repo, tag, docsPath: p.docsPath, filePath: 'CHANGELOG.md' }));
       changelogAvailable = true;
     } else warnings.push(`${p.repo}: no CHANGELOG.md at ${tag}`);
   }
