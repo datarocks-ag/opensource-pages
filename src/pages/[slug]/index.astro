@@ -1,0 +1,13 @@
+---
+import CollectionPage from '../../components/CollectionPage.astro';
+import ProjectPage from '../../components/ProjectPage.astro';
+import { staticPaths } from '../../lib/page-paths';
+
+export function getStaticPaths() {
+  return staticPaths();
+}
+
+const props = Astro.props;
+---
+
+{props.kind === 'collection' ? <CollectionPage collection={props.collection} /> : <ProjectPage project={props.project} />}

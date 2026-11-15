@@ -24,9 +24,14 @@ function emptyInfo(repo: string, warnings: string[] = []): ReleaseInfo {
  * Fetches release, license, docs and changelog of one project at its latest release tag and
  * writes docs under `<docsRoot>/<repo>/docs`. Any failure becomes a warning on an all-null result.
  */
-export async function syncProject(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise<ReleaseInfo> {
+export async function syncProject(
+  p: ProjectData,
+  gh: GitHubClient,
+  docsRoot: string,
+  examplesRoot?: string,
+): Promise<ReleaseInfo> {
   try {
-    return await sync(p, gh, docsRoot);
+    return await sync(p, gh, docsRoot, examplesRoot);
   } catch (e) {
     let reason = e instanceof Error ? e.message : String(e);
     if (e instanceof Error && e.cause !== undefined) {
@@ -37,6 +42,7 @@ export async function syncProject(p: ProjectData, gh: GitHubClient, docsRoot: st
     // Never leave partial docs behind: Astro would publish them while releases.json says unavailable.
     try {
       rmSync(join(docsRoot, p.repo, 'docs'), { recursive: true, force: true });
+      if (examplesRoot) rmSync(exampleFile(examplesRoot, p.repo), { force: true });
     } catch (cleanup) {
       warnings.push(`${p.repo}: could not remove partial docs: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`);
     }
@@ -44,9 +50,10 @@ export async function syncProject(p: ProjectData, gh: GitHubClient, docsRoot: st
   }
 }
 
-async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise<ReleaseInfo> {
+async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string, examplesRoot?: string): Promise<ReleaseInfo> {
   const docsDir = join(docsRoot, p.repo, 'docs');
   rmSync(docsDir, { recursive: true, force: true });
+  if (examplesRoot) rmSync(exampleFile(examplesRoot, p.repo), { force: true });
 
   const release = await gh.latestRelease(p.repo);
   const license = await gh.license(p.repo);
@@ -81,6 +88,12 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
     else write(join(docsDir, 'index.md'), rewriteMarkdown(readme, { ...base, filePath: 'README.md' }));
   }
 
+  if (p.configExample && examplesRoot) {
+    const source = await gh.readFile(p.repo, tag, p.configExample.path);
+    if (source === null) warnings.push(`${p.repo}: configExample ${p.configExample.path} not found at ${tag}`);
+    else write(exampleFile(examplesRoot, p.repo), `${excerpt(source, p.configExample)}\n`);
+  }
+
   let changelogAvailable = false;
   if (written > 0) {
     if (changelog !== null) {
@@ -101,6 +114,20 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
   };
 }
 
+const MAX_EXCERPT_LINES = 40;
+
+function exampleFile(examplesRoot: string, repo: string): string {
+  return join(examplesRoot, `${repo}.txt`);
+}
+
+/** Lines `startLine`..`endLine` (1-based, inclusive); without `endLine` at most 40 lines from `startLine`. */
+function excerpt(source: string, range: { startLine?: number; endLine?: number }): string {
+  const lines = source.replace(/\n$/, '').split('\n');
+  const start = Math.max(1, range.startLine ?? 1);
+  const end = range.endLine ?? start + MAX_EXCERPT_LINES - 1;
+  return lines.slice(start - 1, end).join('\n');
+}
+
 function write(file: string, content: string): void {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, content);
@@ -110,10 +137,10 @@ function write(file: string, content: string): void {
 export async function syncAll(
   ps: ProjectData[],
   gh: GitHubClient,
-  out: { docsRoot: string; releasesFile: string },
+  out: { docsRoot: string; releasesFile: string; examplesRoot?: string },
 ): Promise<ReleaseInfo[]> {
   const results: ReleaseInfo[] = [];
-  for (const p of ps) results.push(await syncProject(p, gh, out.docsRoot));
+  for (const p of ps) results.push(await syncProject(p, gh, out.docsRoot, out.examplesRoot));
   mkdirSync(dirname(out.releasesFile), { recursive: true });
   const byRepo = Object.fromEntries(results.map((r) => [r.repo, r]));
   writeFileSync(out.releasesFile, `${JSON.stringify(byRepo, null, 2)}\n`);

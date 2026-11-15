@@ -11,6 +11,7 @@ try {
   const gh = createGitHubClient({ owner: 'datarocks-ag', token: process.env.GITHUB_TOKEN });
   const results = await syncAll(projects, gh, {
     docsRoot: join(root, 'src/content/docs'),
+    examplesRoot: join(root, 'src/generated/examples'),
     releasesFile: join(root, 'src/generated/releases.json'),
   });
   for (const r of results) {

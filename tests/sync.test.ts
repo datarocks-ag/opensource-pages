@@ -154,3 +154,33 @@ test('docs without index.md and without README → warning, no index', async () 
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/index.md'))).toBe(false);
   expect(info.warnings.join()).toMatch(/README\.md/);
 });
+
+const withExample = (configExample: ProjectData['configExample']): ProjectData => ({ ...pg, configExample });
+const exampleFile = () => join(tmp, 'examples/postgres-provisioner.txt');
+const numbered = Array.from({ length: 100 }, (_, i) => `line${i + 1}`).join('\n');
+
+test('configExample is fetched at the tag and written to the examples dir', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'config.example.yaml': numbered } } });
+  await syncProject(withExample({ path: 'config.example.yaml', startLine: 3, endLine: 5 }), gh, join(tmp, 'docs'), join(tmp, 'examples'));
+  expect(readFileSync(exampleFile(), 'utf8')).toBe('line3\nline4\nline5\n');
+  expect(gh.calls.readFile).toContainEqual(['postgres-provisioner', 'v2.0.0', 'config.example.yaml']);
+});
+
+test('configExample without endLine is capped at 40 lines after startLine', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'c.yaml': numbered } } });
+  await syncProject(withExample({ path: 'c.yaml', startLine: 11 }), gh, join(tmp, 'docs'), join(tmp, 'examples'));
+  const lines = readFileSync(exampleFile(), 'utf8').trimEnd().split('\n');
+  expect(lines).toHaveLength(40);
+  expect(lines[0]).toBe('line11');
+  expect(lines[39]).toBe('line50');
+});
+
+test('missing configExample file warns and clears a stale excerpt', async () => {
+  mkdirSync(join(tmp, 'examples'), { recursive: true });
+  writeFileSync(exampleFile(), 'stale');
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: {} } });
+  const info = await syncProject(withExample({ path: 'nope.yaml' }), gh, join(tmp, 'docs'), join(tmp, 'examples'));
+  expect(existsSync(exampleFile())).toBe(false);
+  expect(info.warnings.join()).toMatch(/nope\.yaml/);
+  expect(info.version).toBe('v2.0.0');
+});
