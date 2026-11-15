@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
@@ -42,6 +43,20 @@ const fixture = (repo: string): FakeRepo => {
   };
 };
 
+/** Exists + content hash of every file under the real generated data and synced docs. */
+function fingerprint(): string {
+  const roots = [join(repoRoot, 'src/generated')];
+  const docs = join(repoRoot, 'src/content/docs');
+  if (existsSync(docs)) for (const n of readdirSync(docs)) roots.push(join(docs, n, 'docs'));
+  const hash = createHash('sha256');
+  for (const root of roots.filter((r) => existsSync(r)).sort()) {
+    for (const f of walk(root).sort()) hash.update(`${f}\0`).update(readFileSync(f)).update('\0');
+  }
+  return hash.digest('hex');
+}
+
+const BUILD_TIMEOUT_MS = 240_000;
+let before: string;
 let tmp: string;
 let dist: string;
 let releases: ReleaseInfo[];
@@ -51,6 +66,7 @@ let buildStatus: number | null;
 const MIRRORED = ['astro.config.mjs', 'package.json', 'tsconfig.json', 'public', 'scripts'];
 
 beforeAll(async () => {
+  before = fingerprint();
   tmp = mkdtempSync(join(repoRoot, '.build-test-'));
   dist = join(tmp, 'dist');
   for (const f of MIRRORED) cpSync(join(repoRoot, f), join(tmp, f), { recursive: true });
@@ -76,12 +92,19 @@ beforeAll(async () => {
     join(tmp, 'run-build.mjs'),
     `import { build } from 'astro';\nawait build({ root: process.cwd(), outDir: ${JSON.stringify(dist)}, logLevel: 'warn' });\n`,
   );
-  const run = spawnSync(process.execPath, ['run-build.mjs'], { cwd: tmp, encoding: 'utf8' });
+  const run = spawnSync(process.execPath, ['run-build.mjs'], {
+    cwd: tmp, encoding: 'utf8', timeout: BUILD_TIMEOUT_MS, killSignal: 'SIGKILL',
+  });
+  if (run.error || run.signal) {
+    throw new Error(`astro build did not finish within ${BUILD_TIMEOUT_MS} ms: ${run.error?.message ?? run.signal}\n${run.stdout}\n${run.stderr}`);
+  }
   buildStatus = run.status;
   buildOutput = `${run.stdout}\n${run.stderr}`;
 }, 300_000);
 
-afterAll(() => rmSync(tmp, { recursive: true, force: true }));
+afterAll(() => {
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
+});
 
 const page = (route: string) => join(dist, route, 'index.html');
 const html = (route: string) => readFileSync(page(route), 'utf8');
@@ -193,5 +216,5 @@ describe('links', () => {
 
 test('real project data is untouched by the test', () => {
   expect(existsSync(join(tmp, 'src/generated/releases.json'))).toBe(true);
-  expect(readFileSync(join(repoRoot, 'src/generated/releases.json'), 'utf8')).not.toContain('v1.2.3');
+  expect(fingerprint()).toBe(before);
 });
