@@ -1,0 +1,8 @@
+{
+  "repo": "broken-project",
+  "name": "Broken",
+  "order": "first",
+  "tagline": "Missing required fields and a wrong type for order.",
+  "highlights": [],
+  "features": []
+}

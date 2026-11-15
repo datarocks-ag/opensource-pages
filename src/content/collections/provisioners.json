@@ -1,0 +1,92 @@
+{
+  "slug": "provisioners",
+  "name": "Provisioners",
+  "description": "Declarative, idempotent bootstrapping for the services your stack depends on. One small Go binary per service — describe what should exist, run it as an init container, and your app starts against a ready environment.",
+  "steps": [
+    {
+      "title": "Describe",
+      "body": "Declare the resources that should exist in a YAML file. Secrets come in through ${VAR} expansion.",
+      "code": "config.yaml"
+    },
+    {
+      "title": "Provision",
+      "body": "Run the provisioner as an init container or Kubernetes Job. It waits for the service, then creates or updates.",
+      "code": "docker compose up"
+    },
+    {
+      "title": "Start",
+      "body": "Your application starts once provisioning has completed — against an environment that is guaranteed to be ready.",
+      "code": "service_completed_successfully"
+    }
+  ],
+  "conventions": [
+    {
+      "label": "Idempotent YAML config",
+      "supported": [
+        "keycloak-provisioner",
+        "postgres-provisioner",
+        "nats-provisioner",
+        "redpanda-provisioner",
+        "gcp-emulator-provisioner",
+        "seaweedfs-provisioner"
+      ]
+    },
+    {
+      "label": "${VAR} environment expansion",
+      "supported": [
+        "keycloak-provisioner",
+        "postgres-provisioner",
+        "nats-provisioner",
+        "redpanda-provisioner",
+        "gcp-emulator-provisioner",
+        "seaweedfs-provisioner"
+      ]
+    },
+    {
+      "label": "update / create strategy",
+      "supported": [
+        "keycloak-provisioner",
+        "postgres-provisioner",
+        "nats-provisioner",
+        "redpanda-provisioner",
+        "gcp-emulator-provisioner",
+        "seaweedfs-provisioner"
+      ]
+    },
+    {
+      "label": "Retry with exponential backoff",
+      "supported": [
+        "keycloak-provisioner",
+        "postgres-provisioner",
+        "nats-provisioner",
+        "redpanda-provisioner",
+        "gcp-emulator-provisioner",
+        "seaweedfs-provisioner"
+      ]
+    },
+    {
+      "label": "Structured logs",
+      "supported": [
+        "keycloak-provisioner",
+        "postgres-provisioner",
+        "nats-provisioner",
+        "redpanda-provisioner",
+        "gcp-emulator-provisioner",
+        "seaweedfs-provisioner"
+      ]
+    },
+    {
+      "label": "--dry-run",
+      "supported": [
+        "keycloak-provisioner",
+        "postgres-provisioner",
+        "gcp-emulator-provisioner",
+        "seaweedfs-provisioner"
+      ]
+    }
+  ],
+  "compose": {
+    "file": "docker-compose.yaml",
+    "code": "services:\n  postgres-provisioner:\n    image: ghcr.io/datarocks-ag/postgres-provisioner:{{version:postgres-provisioner}}\n    depends_on: [postgres]\n    environment:\n      POSTGRES_HOST: postgres\n      PGHELPER_CONFIG_PATH: /config.yaml\n    volumes: [\"./provision/postgres.yaml:/config.yaml:ro\"]\n\n  keycloak-provisioner:\n    image: ghcr.io/datarocks-ag/keycloak-provisioner:{{version:keycloak-provisioner}}\n    depends_on: [keycloak]\n    environment:\n      KEYCLOAK_URL: http://keycloak:8080\n      KEYCLOAK_CONFIG_PATH: /config.yaml\n    volumes: [\"./provision/keycloak.yaml:/config.yaml:ro\"]\n\n  app:\n    depends_on:\n      postgres-provisioner:\n        condition: service_completed_successfully\n      keycloak-provisioner:\n        condition: service_completed_successfully"
+  }
+}

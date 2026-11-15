@@ -1,0 +1,46 @@
+{
+  "repo": "seaweedfs-provisioner",
+  "name": "SeaweedFS",
+  "collection": "provisioners",
+  "order": 6,
+  "tagline": "S3 buckets, identities and policies for SeaweedFS. Policies applied only when they drift; never deletes.",
+  "highlights": [
+    "never deletes"
+  ],
+  "resources": [
+    "S3 buckets",
+    "IAM identities",
+    "bucket policies",
+    "lifecycle rules"
+  ],
+  "features": [
+    {
+      "title": "Buckets, identities, policies",
+      "body": "Idempotent provisioning of S3 buckets, IAM identities and bucket policies."
+    },
+    {
+      "title": "Versioning and lifecycle",
+      "body": "Bucket versioning and object expiration rules."
+    },
+    {
+      "title": "Two phases",
+      "body": "Identities are rendered into the s3.config SeaweedFS loads at boot, merged rather than overwritten; buckets and policies are applied once the cluster is healthy."
+    },
+    {
+      "title": "Policies from JSON files",
+      "body": "Bucket policies are loaded from JSON files and applied only when they drift."
+    },
+    {
+      "title": "Dry run",
+      "body": "Previews every mutation against live state."
+    },
+    {
+      "title": "Never destructive",
+      "body": "Never deletes buckets, identities or policies that are not in the config."
+    }
+  ],
+  "configExample": {
+    "path": "config.example.yaml",
+    "startLine": 7
+  }
+}
