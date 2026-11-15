@@ -1,0 +1,46 @@
+{
+  "repo": "bad-icon",
+  "name": "PostgreSQL",
+  "collection": "provisioners",
+  "order": 2,
+  "tagline": "Everything a PostgreSQL database needs before your app connects \u2014 down to privileges, migrations and publications.",
+  "highlights": [
+    "single static binary in a scratch image"
+  ],
+  "resources": [
+    "roles",
+    "databases",
+    "schemas",
+    "privileges",
+    "extensions",
+    "migrations",
+    "publications"
+  ],
+  "features": [
+    {
+      "title": "Idempotent",
+      "body": "Run it on every deploy. Existing resources are reconciled, not recreated.",
+      "icon": "unicorn"
+    },
+    {
+      "title": "Additive and safe",
+      "body": "Never drops roles, databases, schemas, tables or grants that aren't in the config. Privileges are removed only through explicit revokes."
+    },
+    {
+      "title": "Secret-friendly",
+      "body": "${VAR} references and *_FILE secrets (Docker, Kubernetes); passwords are redacted from every log line."
+    },
+    {
+      "title": "Previewable",
+      "body": "--dry-run logs every statement it would execute."
+    },
+    {
+      "title": "Small",
+      "body": "A single static binary in a scratch image."
+    }
+  ],
+  "configExample": {
+    "path": "config.example.yaml",
+    "startLine": 17
+  }
+}

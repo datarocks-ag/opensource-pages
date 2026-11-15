@@ -19,23 +19,28 @@
   "features": [
     {
       "title": "Idempotent",
-      "body": "Run it on every deploy. Existing resources are reconciled, not recreated."
+      "body": "Run it on every deploy. Existing resources are reconciled, not recreated.",
+      "icon": "check"
     },
     {
       "title": "Additive and safe",
-      "body": "Never drops roles, databases, schemas, tables or grants that aren't in the config. Privileges are removed only through explicit revokes."
+      "body": "Never drops roles, databases, schemas, tables or grants that aren't in the config. Privileges are removed only through explicit revokes.",
+      "icon": "shield"
     },
     {
       "title": "Secret-friendly",
-      "body": "${VAR} references and *_FILE secrets (Docker, Kubernetes); passwords are redacted from every log line."
+      "body": "${VAR} references and *_FILE secrets (Docker, Kubernetes); passwords are redacted from every log line.",
+      "icon": "key"
     },
     {
       "title": "Previewable",
-      "body": "--dry-run logs every statement it would execute."
+      "body": "--dry-run logs every statement it would execute.",
+      "icon": "eye"
     },
     {
       "title": "Small",
-      "body": "A single static binary in a scratch image."
+      "body": "A single static binary in a scratch image.",
+      "icon": "box"
     }
   ],
   "configExample": {

@@ -62,6 +62,10 @@ describe('project data', () => {
     }
   });
 
+  test('a feature icon outside the icon set raises DataError', () => {
+    expect(() => loadProjects('tests/fixtures/data-bad-icon')).toThrow(/features\[0\]\.icon/);
+  });
+
   test('invalid file raises DataError naming the file', () => {
     expect(() => loadProjects('tests/fixtures/data')).toThrow(/invalid-project\.json/);
     expect(() => loadProjects('tests/fixtures/data')).toThrow(DataError);

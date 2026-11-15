@@ -6,8 +6,14 @@ interface Props {
   code: string;
   caption?: string;
   captionHref?: string;
+  /**
+   * Wrap long lines instead of scrolling sideways. A wrapped line continues indented under its
+   * own text, so YAML structure stays readable.
+   */
+  wrap?: boolean;
 }
-const { file, code, caption, captionHref } = Astro.props;
+const { file, code, caption, captionHref, wrap = false } = Astro.props;
+const lines = wrap ? code.split('\n').map((text) => ({ text, indent: text.length - text.trimStart().length })) : [];
 ---
 
 <figure class="code-block">
@@ -15,7 +21,13 @@ const { file, code, caption, captionHref } = Astro.props;
     <span class="file">{file}</span>
     <button type="button" aria-label="Copy code" data-copy-code>Copy</button>
   </div>
-  <pre tabindex="0"><code>{code}</code></pre>
+  {
+    wrap ? (
+      <pre class="wrap" tabindex="0"><code>{lines.map((l) => <span class="line" style={`--indent: ${l.indent}ch`}>{l.text}</span>)}</code></pre>
+    ) : (
+      <pre tabindex="0"><code>{code}</code></pre>
+    )
+  }
   {
     caption && (
       <figcaption>
@@ -63,6 +75,17 @@ const { file, code, caption, captionHref } = Astro.props;
     font-size: 13.5px;
     line-height: 1.6;
   }
+  /* Each line is a block; continuation rows hang 2ch past the line's own indentation. */
+  pre.wrap .line {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding-inline-start: calc(var(--indent) + 2ch);
+    text-indent: calc(-1 * (var(--indent) + 2ch));
+  }
+  pre.wrap .line:empty::after {
+    content: '\200b';
+  }
   figcaption {
     padding: 10px 16px;
     border-top: 1px solid #262552;
@@ -78,7 +101,10 @@ const { file, code, caption, captionHref } = Astro.props;
   document.addEventListener('click', async (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>('[data-copy-code]');
     if (!button) return;
-    const text = button.closest('figure')?.querySelector('code')?.textContent ?? '';
+    const code = button.closest('figure')?.querySelector('code');
+    const lines = code ? [...code.querySelectorAll('.line')] : [];
+    // Wrapped blocks render one element per line with no newline characters between them.
+    const text = lines.length > 0 ? lines.map((l) => l.textContent).join('\n') : (code?.textContent ?? '');
     try {
       await navigator.clipboard.writeText(text);
     } catch {
