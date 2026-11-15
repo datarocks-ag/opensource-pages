@@ -23,7 +23,7 @@ test('docs and changelog are written from the release tag', async () => {
   const info = await syncProject(pg, gh, tmp);
   expect(info).toMatchObject({ version: 'v2.0.0', tag: 'v2.0.0', license: 'Apache-2.0', docsAvailable: true, changelogAvailable: true, warnings: [] });
   expect(gh.calls.listFiles).toEqual([['postgres-provisioner', 'v2.0.0', 'docs']]);
-  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8')).toMatch(/^---\ntitle: "PG"\neditUrl: .*\/edit\/main\/docs\/index\.md\n---\n\n\[c\]\(https:\/\/github\.com\/datarocks-ag\/postgres-provisioner\/blob\/v2\.0\.0\/CHANGELOG\.md\)/);
+  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8')).toMatch(/^---\ntitle: "PG"\neditUrl: .*\/edit\/main\/docs\/index\.md\n---\n\n\[c\]\(\/postgres-provisioner\/docs\/changelog\/\)/);
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/guide/a.mdx'))).toBe(true);
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/img.png'))).toBe(false);
   expect(readFileSync(join(tmp, 'postgres-provisioner/docs/changelog.md'), 'utf8')).toMatch(/title: "Changelog"[\s\S]*\]\(https:\/\/github\.com\/datarocks-ag\/postgres-provisioner\/blob\/v2\.0\.0\/LICENSE\)/);
@@ -136,4 +136,21 @@ test('error cause message is rendered in the warning', async () => {
   const gh = { ...fakeClient({}), async latestRelease(): Promise<never> { throw new Error('boom', { cause: new Error('socket hang up') }); } };
   const info = await syncProject(pg, gh, tmp);
   expect(info.warnings[0]).toMatch(/boom \(cause: socket hang up\)/);
+});
+
+test('docs without index.md get the README as index, rewritten', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/a.md': '# A', 'README.md': '# PG\n\n[a](docs/a.md)\n[c](CHANGELOG.md)' }, changelog: '# Changelog' } });
+  const info = await syncProject(pg, gh, tmp);
+  const index = readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8');
+  expect(index).toContain('title: "PG"');
+  expect(index).toContain('](/postgres-provisioner/docs/a/)');
+  expect(index).toContain('](/postgres-provisioner/docs/changelog/)');
+  expect(info.warnings).toEqual([]);
+});
+
+test('docs without index.md and without README → warning, no index', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/a.md': '# A' } } });
+  const info = await syncProject(pg, gh, tmp);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs/index.md'))).toBe(false);
+  expect(info.warnings.join()).toMatch(/README\.md/);
 });

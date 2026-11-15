@@ -56,8 +56,12 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
   const { tag } = release;
   const warnings: string[] = [];
 
+  // The changelog page lives inside the docs folder, so it only exists when there are docs.
   const docsPrefix = `${p.docsPath.replace(/\/+$/, '')}/`;
   const files = (await gh.listFiles(p.repo, tag, p.docsPath)).filter((f) => /\.mdx?$/.test(f));
+  const changelog = files.length > 0 ? await gh.readFile(p.repo, tag, 'CHANGELOG.md') : null;
+  const base = { repo: p.repo, tag, docsPath: p.docsPath, changelogOnSite: changelog !== null };
+
   let written = 0;
   for (const filePath of files) {
     const source = await gh.readFile(p.repo, tag, filePath);
@@ -65,18 +69,22 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string): Promise
       warnings.push(`${p.repo}: ${filePath} listed but not readable at ${tag}`);
       continue;
     }
-    const content = rewriteMarkdown(source, { repo: p.repo, tag, docsPath: p.docsPath, filePath });
-    write(join(docsDir, posix.relative(docsPrefix, filePath)), content);
+    write(join(docsDir, posix.relative(docsPrefix, filePath)), rewriteMarkdown(source, { ...base, filePath }));
     written++;
   }
   if (written === 0) warnings.push(`${p.repo}: no docs found in ${p.docsPath}/ at ${tag}`);
 
-  // The changelog page lives inside the docs folder, so it only exists when there are docs.
+  // Without a docs landing page the README stands in, so /<repo>/docs/ is never empty.
+  if (written > 0 && !files.some((f) => /^index\.mdx?$/i.test(posix.relative(docsPrefix, f)))) {
+    const readme = await gh.readFile(p.repo, tag, 'README.md');
+    if (readme === null) warnings.push(`${p.repo}: docs have no index.md and no README.md at ${tag}`);
+    else write(join(docsDir, 'index.md'), rewriteMarkdown(readme, { ...base, filePath: 'README.md' }));
+  }
+
   let changelogAvailable = false;
   if (written > 0) {
-    const changelog = await gh.readFile(p.repo, tag, 'CHANGELOG.md');
     if (changelog !== null) {
-      write(join(docsDir, 'changelog.md'), rewriteMarkdown(changelog, { repo: p.repo, tag, docsPath: p.docsPath, filePath: 'CHANGELOG.md' }));
+      write(join(docsDir, 'changelog.md'), rewriteMarkdown(changelog, { ...base, filePath: 'CHANGELOG.md' }));
       changelogAvailable = true;
     } else warnings.push(`${p.repo}: no CHANGELOG.md at ${tag}`);
   }

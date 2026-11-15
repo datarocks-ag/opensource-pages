@@ -1,6 +1,7 @@
 import { posix } from 'node:path';
 import type { Definition, Heading, Image, Link, Nodes, Parent, Root } from 'mdast';
 import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
@@ -13,6 +14,8 @@ export interface RewriteContext {
   docsPath: string;
   /** Repo-relative path of the file being rewritten. */
   filePath: string;
+  /** True when the repo's CHANGELOG.md is published as the site's changelog page. */
+  changelogOnSite?: boolean;
 }
 
 const ORG = 'datarocks-ag';
@@ -25,12 +28,13 @@ const BADGE = /\/actions\/workflows\/|badge|\.badges\//i;
  * `title`/`editUrl` frontmatter is set (an existing frontmatter block is kept verbatim).
  */
 export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
-  const tree = unified().use(remarkParse).use(remarkFrontmatter, ['yaml']).parse(source) as Root;
+  const tree = unified().use(remarkParse).use(remarkFrontmatter, ['yaml']).use(remarkGfm).parse(source) as Root;
 
   removeBadges(tree);
   visit(tree, (node) => {
     if (node.type === 'link' || node.type === 'definition') node.url = rewriteUrl(node.url, ctx, false);
     else if (node.type === 'image') node.url = rewriteUrl(node.url, ctx, true);
+    else if (node.type === 'html') node.value = rewriteHtml(node.value, ctx);
   });
 
   const frontmatter = tree.children[0]?.type === 'yaml' ? tree.children.shift()!.value : '';
@@ -43,6 +47,7 @@ export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
   }
 
   const body = unified()
+    .use(remarkGfm)
     .use(remarkStringify, { bullet: '-', emphasis: '_', fences: true, listItemIndent: 'one', rule: '-' })
     .stringify(tree);
   const head = `---\n${lines.join('\n')}\n---\n`;
@@ -74,6 +79,11 @@ function removeBadges(tree: Root): void {
   });
 }
 
+function rewriteHtml(html: string, ctx: RewriteContext): string {
+  return html.replace(/\b(src|href)=(?:"([^"]*)"|'([^']*)')/g, (_m, attr: string, dq?: string, sq?: string) =>
+    `${attr}="${rewriteUrl(dq ?? sq ?? '', ctx, attr === 'src')}"`);
+}
+
 function rewriteUrl(url: string, ctx: RewriteContext, isImage: boolean): string {
   if (!url || url.startsWith('#') || url.startsWith('//') || SCHEME.test(url)) return url;
   const cut = url.search(/[#?]/);
@@ -84,6 +94,8 @@ function rewriteUrl(url: string, ctx: RewriteContext, isImage: boolean): string 
   // A leading slash means repo root, which is how GitHub renders it.
   const resolved = path.startsWith('/') ? posix.normalize(path.slice(1)) : posix.join(posix.dirname(ctx.filePath), path);
   if (resolved.startsWith('..')) return url;
+
+  if (!isImage && ctx.changelogOnSite && resolved === 'CHANGELOG.md') return `/${ctx.repo}/docs/changelog/${suffix}`;
 
   const docsPrefix = `${ctx.docsPath.replace(/\/+$/, '')}/`;
   if (!isImage && /\.mdx?$/.test(resolved) && resolved.startsWith(docsPrefix)) {

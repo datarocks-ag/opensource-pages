@@ -74,3 +74,41 @@ test('changelog links resolve from the repo root; title falls back to Changelog'
   expect(out).toContain('](/postgres-provisioner/docs/a/)');
   expect(out).toContain(`](${gh}/blob/v2.0.0/LICENSE)`);
 });
+
+test('GFM tables, task lists, strikethrough and footnotes round-trip', () => {
+  const src = [
+    '| a | b |',
+    '| - | - |',
+    '| [x](../concepts.md) | ~~old~~ |',
+    '',
+    '- [ ] todo',
+    '- [x] done',
+    '',
+    'Text[^1]',
+    '',
+    '[^1]: note',
+    '',
+  ].join('\n');
+  const body = rewriteMarkdown(src, ctx).replace(/^---[\s\S]*?---\n\n/, '');
+  expect(body).toContain('[x](/postgres-provisioner/docs/concepts/)');
+  expect(body).toContain('~~old~~');
+  expect(body).toContain('- [ ] todo\n- [x] done');
+  expect(body).toContain('Text[^1]');
+  expect(body).toContain('[^1]: note');
+  expect(body).not.toContain('\\');
+});
+
+test('link to repo-root CHANGELOG.md maps to the site changelog when available', () => {
+  const md = '[c](../../CHANGELOG.md#unreleased)';
+  expect(rewriteMarkdown(md, { ...ctx, changelogOnSite: true })).toContain('](/postgres-provisioner/docs/changelog/#unreleased)');
+  expect(rewriteMarkdown(md, ctx)).toContain(`](${gh}/blob/v2.0.0/CHANGELOG.md#unreleased)`);
+});
+
+test('relative src and href in raw HTML are rewritten', () => {
+  const out = rewriteMarkdown('<img src="../img/a.png" alt="a"> <a href="../concepts.md">c</a> <a href="https://x.y/z">z</a> <a href="#t">t</a> <a href="mailto:a@b.c">m</a>', ctx);
+  expect(out).toContain('src="https://raw.githubusercontent.com/datarocks-ag/postgres-provisioner/v2.0.0/docs/img/a.png"');
+  expect(out).toContain('href="/postgres-provisioner/docs/concepts/"');
+  expect(out).toContain('href="https://x.y/z"');
+  expect(out).toContain('href="#t"');
+  expect(out).toContain('href="mailto:a@b.c"');
+});
