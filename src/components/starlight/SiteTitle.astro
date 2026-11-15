@@ -12,18 +12,23 @@ import DocsSelector from './DocsSelector.astro';
 <DocsSelector class="sl-hidden md:sl-flex" />
 
 <style>
+  /*
+   * Inline layout so "/ docs" sits on the wordmark's baseline: the wordmark's baseline is at 79.5%
+   * of the logo's height, so the logo drops by the remaining 20.5% below the text baseline.
+   */
   .dr-site-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    white-space: nowrap;
     color: var(--sl-color-text-accent);
     text-decoration: none;
   }
   .dr-site-title img {
+    display: inline-block;
     height: 1.5rem;
     width: auto;
+    vertical-align: calc(1.5rem * -0.205);
   }
   .dr-site-title__docs {
+    margin-inline-start: 0.5rem;
     font-family: var(--dr-font-mono);
     font-size: var(--sl-text-sm);
     color: var(--sl-color-gray-3);
