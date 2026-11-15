@@ -184,3 +184,28 @@ test('missing configExample file warns and clears a stale excerpt', async () => 
   expect(info.warnings.join()).toMatch(/nope\.yaml/);
   expect(info.version).toBe('v2.0.0');
 });
+
+/** Wraps a fake client so readFile throws for one path. */
+function failingRead(path: string, gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/a.md': '# A' }, changelog: '# C' } })) {
+  const read = gh.readFile.bind(gh);
+  gh.readFile = async (repo, ref, p) => {
+    if (p === path) throw new GitHubError(403, `https://api.github.com/x/${p}`);
+    return read(repo, ref, p);
+  };
+  return gh;
+}
+
+test('configExample transport error keeps release and docs, with a warning', async () => {
+  const info = await syncProject(withExample({ path: 'c.yaml' }), failingRead('c.yaml'), join(tmp, 'docs'), join(tmp, 'examples'));
+  expect(info).toMatchObject({ version: 'v2.0.0', docsAvailable: true, changelogAvailable: true });
+  expect(info.warnings.join()).toMatch(/c\.yaml.*403/);
+  expect(existsSync(exampleFile())).toBe(false);
+  expect(existsSync(join(tmp, 'docs/postgres-provisioner/docs/a.md'))).toBe(true);
+});
+
+test('README fallback transport error keeps release and docs, with a warning', async () => {
+  const info = await syncProject(pg, failingRead('README.md'), join(tmp, 'docs'));
+  expect(info).toMatchObject({ version: 'v2.0.0', docsAvailable: true, changelogAvailable: true });
+  expect(info.warnings.join()).toMatch(/README\.md.*403/);
+  expect(existsSync(join(tmp, 'docs/postgres-provisioner/docs/changelog.md'))).toBe(true);
+});

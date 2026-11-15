@@ -33,12 +33,7 @@ export async function syncProject(
   try {
     return await sync(p, gh, docsRoot, examplesRoot);
   } catch (e) {
-    let reason = e instanceof Error ? e.message : String(e);
-    if (e instanceof Error && e.cause !== undefined) {
-      const c = e.cause;
-      reason += ` (cause: ${c instanceof Error ? c.message : String(c)})`;
-    }
-    const warnings = [`${p.repo}: sync failed: ${reason}`];
+    const warnings = [`${p.repo}: sync failed: ${describeError(e)}`];
     // Never leave partial docs behind: Astro would publish them while releases.json says unavailable.
     try {
       rmSync(join(docsRoot, p.repo, 'docs'), { recursive: true, force: true });
@@ -83,15 +78,25 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string, examples
 
   // Without a docs landing page the README stands in, so /<repo>/docs/ is never empty.
   if (written > 0 && !files.some((f) => /^index\.mdx?$/i.test(posix.relative(docsPrefix, f)))) {
-    const readme = await gh.readFile(p.repo, tag, 'README.md');
-    if (readme === null) warnings.push(`${p.repo}: docs have no index.md and no README.md at ${tag}`);
-    else write(join(docsDir, 'index.md'), rewriteMarkdown(readme, { ...base, filePath: 'README.md' }));
+    // Optional extra: a transport error must not discard the docs already written.
+    try {
+      const readme = await gh.readFile(p.repo, tag, 'README.md');
+      if (readme === null) warnings.push(`${p.repo}: docs have no index.md and no README.md at ${tag}`);
+      else write(join(docsDir, 'index.md'), rewriteMarkdown(readme, { ...base, filePath: 'README.md' }));
+    } catch (e) {
+      warnings.push(`${p.repo}: README.md fallback for docs index failed: ${describeError(e)}`);
+    }
   }
 
   if (p.configExample && examplesRoot) {
-    const source = await gh.readFile(p.repo, tag, p.configExample.path);
-    if (source === null) warnings.push(`${p.repo}: configExample ${p.configExample.path} not found at ${tag}`);
-    else write(exampleFile(examplesRoot, p.repo), `${excerpt(source, p.configExample)}\n`);
+    // The excerpt is optional: a failed fetch only omits it.
+    try {
+      const source = await gh.readFile(p.repo, tag, p.configExample.path);
+      if (source === null) warnings.push(`${p.repo}: configExample ${p.configExample.path} not found at ${tag}`);
+      else write(exampleFile(examplesRoot, p.repo), `${excerpt(source, p.configExample)}\n`);
+    } catch (e) {
+      warnings.push(`${p.repo}: configExample ${p.configExample.path} could not be fetched: ${describeError(e)}`);
+    }
   }
 
   let changelogAvailable = false;
@@ -112,6 +117,15 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string, examples
     changelogAvailable,
     warnings,
   };
+}
+
+function describeError(e: unknown): string {
+  let reason = e instanceof Error ? e.message : String(e);
+  if (e instanceof Error && e.cause !== undefined) {
+    const c = e.cause;
+    reason += ` (cause: ${c instanceof Error ? c.message : String(c)})`;
+  }
+  return reason;
 }
 
 const MAX_EXCERPT_LINES = 40;
