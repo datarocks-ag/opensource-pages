@@ -19,6 +19,16 @@
       "code": "service_completed_successfully"
     }
   ],
+  "principles": [
+    {
+      "title": "Declarative",
+      "body": "Everything a provisioner sets up lives in one YAML file you can review, diff and version. Your config is the documentation of your environment."
+    },
+    {
+      "title": "Safe by default",
+      "body": "Provisioners create and update what the config describes, and never remove what they did not create. Running one twice changes nothing."
+    }
+  ],
   "conventions": [
     {
       "label": "Idempotent YAML config",

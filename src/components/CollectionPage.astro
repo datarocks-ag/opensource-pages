@@ -8,7 +8,7 @@ import { renderVersionPlaceholders } from '../lib/placeholders';
 import { githubUrl, imageRef, projectUrl } from '../lib/urls';
 import { aboutDataRocks, collectionUsage } from '../lib/site-copy';
 
-/** The collection landing page: how the tools work together, the tool list, shared conventions and a compose example. */
+/** The collection landing page: how the tools work together, the tool list, how they behave and their shared conventions, and a compose example. */
 interface Props {
   collection: CollectionData;
 }
@@ -82,6 +82,16 @@ const compose = renderVersionPlaceholders(collection.compose.code, (repo) => get
   <section class="block" aria-labelledby="conventions">
     <div class="dr-container stack">
       <h2 id="conventions">Shared conventions</h2>
+      <ul class="principles">
+        {
+          collection.principles.map((p) => (
+            <li>
+              <h3>{p.title}</h3>
+              <p>{p.body}</p>
+            </li>
+          ))
+        }
+      </ul>
       <div class="scroll" style="overflow-x:auto" tabindex="0" role="region" aria-label="Conventions matrix">
         <table>
           <thead>
@@ -143,6 +153,10 @@ const compose = renderVersionPlaceholders(collection.compose.code, (repo) => get
   .steps li::before { content: counter(step, decimal-leading-zero); font-family: var(--dr-font-mono); font-size: 13px; color: var(--dr-accent); }
   .steps h3 { margin: 0; font-size: 20px; }
   .steps code { align-self: flex-start; padding: 4px 10px; background: var(--dr-tint); border-radius: 6px; font-family: var(--dr-font-mono); font-size: 13px; overflow-wrap: anywhere; }
+  .principles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+  .principles li { display: flex; flex-direction: column; gap: 8px; padding: 24px; background: #fff; border: 1px solid var(--dr-border); border-radius: 12px; }
+  .principles h3 { margin: 0; font-size: 20px; }
+  .principles p { font-size: 15px; line-height: 1.55; }
   .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
   .tool { display: flex; flex-direction: column; gap: 14px; padding: 28px; border: 1px solid var(--dr-border); border-radius: 16px; background: #fff; color: var(--dr-text); }
   .tool-top { flex-wrap: wrap; }

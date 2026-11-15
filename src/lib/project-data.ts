@@ -27,6 +27,8 @@ export interface CollectionData {
   name: string;
   description: string;
   steps: { title: string; body: string; code: string }[];
+  /** How every tool of the collection behaves; shown with the conventions matrix. */
+  principles: { title: string; body: string }[];
   /** `supported` lists the repos that have the convention. */
   conventions: { label: string; supported: string[] }[];
   /** `code` may contain `{{version:<repo>}}` placeholders. */
@@ -173,6 +175,10 @@ function parseCollection(file: string, v: unknown): CollectionData {
         body: str(file, x, 'body', `steps[${i}]`),
         code: str(file, x, 'code', `steps[${i}]`),
       };
+    }),
+    principles: list(file, o, 'principles').map((p, i) => {
+      const x = obj(file, p, `principles[${i}]`);
+      return { title: str(file, x, 'title', `principles[${i}]`), body: str(file, x, 'body', `principles[${i}]`) };
     }),
     conventions: list(file, o, 'conventions').map((c, i) => {
       const x = obj(file, c, `conventions[${i}]`);
