@@ -15,27 +15,33 @@
   "features": [
     {
       "title": "Topics, subscriptions, buckets",
-      "body": "Idempotent provisioning of Pub/Sub topics and subscriptions and Cloud Storage buckets."
+      "body": "Idempotent provisioning of Pub/Sub topics and subscriptions and Cloud Storage buckets.",
+      "icon": "layers"
     },
     {
       "title": "Drift reconciliation",
-      "body": "Sends a minimal update mask: only the fields that actually changed."
+      "body": "Sends a minimal update mask: only the fields that actually changed.",
+      "icon": "refresh"
     },
     {
       "title": "Fixed-at-creation fields",
-      "body": "Fields Pub/Sub fixes at creation (filter, enable_message_ordering) are reported as warnings instead of failing the run."
+      "body": "Fields Pub/Sub fixes at creation (filter, enable_message_ordering) are reported as warnings instead of failing the run.",
+      "icon": "lock"
     },
     {
       "title": "Emulator gaps",
-      "body": "Gaps in the emulators that Google Cloud does not have are downgraded to warnings, so one config works against both."
+      "body": "Gaps in the emulators that Google Cloud does not have are downgraded to warnings, so one config works against both.",
+      "icon": "alert"
     },
     {
       "title": "Dry run",
-      "body": "Previews every mutation against live state."
+      "body": "Previews every mutation against live state.",
+      "icon": "eye"
     },
     {
       "title": "Never destructive",
-      "body": "Never deletes topics, subscriptions or buckets that are not in the config."
+      "body": "Never deletes topics, subscriptions or buckets that are not in the config.",
+      "icon": "shield"
     }
   ],
   "configExample": {

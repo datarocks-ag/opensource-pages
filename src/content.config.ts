@@ -45,7 +45,7 @@ const projects = defineCollection({
     tagline: z.string(),
     highlights: z.array(z.string()),
     resources: z.array(z.string()).optional(),
-    features: z.array(z.object({ title: z.string(), body: z.string() })),
+    features: z.array(z.object({ title: z.string(), body: z.string(), icon: z.string() })),
     configExample: z
       .object({ path: z.string(), startLine: z.number().optional(), endLine: z.number().optional() })
       .optional(),

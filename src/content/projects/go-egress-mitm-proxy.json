@@ -10,35 +10,43 @@
   "features": [
     {
       "title": "Split-brain DNS",
-      "body": "via TCP dial interception, routing to target_ip or target_host"
+      "body": "via TCP dial interception, routing to target_ip or target_host",
+      "icon": "split"
     },
     {
       "title": "Path-based routing",
-      "body": "different paths on one domain to different backends"
+      "body": "different paths on one domain to different backends",
+      "icon": "route"
     },
     {
       "title": "ACL",
-      "body": "whitelist, blacklist and passthrough with exact, wildcard and regex matching"
+      "body": "whitelist, blacklist and passthrough with exact, wildcard and regex matching",
+      "icon": "filter"
     },
     {
       "title": "Header policies",
-      "body": "inject headers, strip sensitive ones, automatic X-Request-ID"
+      "body": "inject headers, strip sensitive ones, automatic X-Request-ID",
+      "icon": "tag"
     },
     {
       "title": "Upstream TLS trust",
-      "body": "custom PEM bundle or PKCS#12 truststore, per-target bypass"
+      "body": "custom PEM bundle or PKCS#12 truststore, per-target bypass",
+      "icon": "lock"
     },
     {
       "title": "Hot reload",
-      "body": "apply config changes with SIGHUP, no restart"
+      "body": "apply config changes with SIGHUP, no restart",
+      "icon": "refresh"
     },
     {
       "title": "Audit & tracing",
-      "body": "JSON log of blocked requests, opt-in request traces with redaction"
+      "body": "JSON log of blocked requests, opt-in request traces with redaction",
+      "icon": "list"
     },
     {
       "title": "Operable",
-      "body": "Prometheus metrics, health endpoints, graceful shutdown"
+      "body": "Prometheus metrics, health endpoints, graceful shutdown",
+      "icon": "activity"
     }
   ],
   "configExample": {

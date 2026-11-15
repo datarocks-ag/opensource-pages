@@ -17,27 +17,33 @@
   "features": [
     {
       "title": "Topics, schemas, users, ACLs",
-      "body": "Idempotent provisioning of topics, Schema Registry schemas, SASL users and ACLs."
+      "body": "Idempotent provisioning of topics, Schema Registry schemas, SASL users and ACLs.",
+      "icon": "layers"
     },
     {
       "title": "Schema Registry",
-      "body": "Avro, Protobuf and JSON Schema."
+      "body": "Avro, Protobuf and JSON Schema.",
+      "icon": "file"
     },
     {
       "title": "SASL/SCRAM",
-      "body": "SCRAM-SHA-256 and SCRAM-SHA-512."
+      "body": "SCRAM-SHA-256 and SCRAM-SHA-512.",
+      "icon": "key"
     },
     {
       "title": "ACLs",
-      "body": "Literal and prefixed resource patterns."
+      "body": "Literal and prefixed resource patterns.",
+      "icon": "filter"
     },
     {
       "title": "Never destructive",
-      "body": "Never deletes topics, schemas, users or ACLs that are not in the config, and warns instead of decreasing a partition count."
+      "body": "Never deletes topics, schemas, users or ACLs that are not in the config, and warns instead of decreasing a partition count.",
+      "icon": "shield"
     },
     {
       "title": "Resilient and observable",
-      "body": "Exponential backoff for broker and Schema Registry connectivity; structured JSON logs."
+      "body": "Exponential backoff for broker and Schema Registry connectivity; structured JSON logs.",
+      "icon": "activity"
     }
   ],
   "configExample": {

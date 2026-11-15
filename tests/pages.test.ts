@@ -144,3 +144,20 @@ test('collection page states how its tools behave, from the collection data', as
     expect(html).toContain(p.body);
   }
 });
+
+test('features render as cards with an icon each', async () => {
+  const html = await renderProject('go-egress-mitm-proxy');
+  const cards = [...html.matchAll(/<li class="feature-card"[\s\S]*?<\/li>/g)].map((m) => m[0]);
+  expect(cards).toHaveLength(project('go-egress-mitm-proxy').features.length);
+  for (const card of cards) expect(card).toMatch(/<svg[^>]*aria-hidden="true"/);
+  expect(cards[0]).toContain('Split-brain DNS');
+});
+
+test('configuration is its own section with wrapped lines instead of a scrollbar', async () => {
+  const html = await renderProject('keycloak-provisioner');
+  const section = html.match(/<section[^>]*aria-labelledby="configuration"[\s\S]*?<\/section>/)![0];
+  expect(section).toContain('>Configuration</h2>');
+  expect(section).toMatch(/<pre[^>]*class="[^"]*wrap/);
+  expect(section).toMatch(/<span class="line" style="--indent: 0ch"[^>]*>realms: \[\]<\/span>/);
+  expect(await renderProject('nats-provisioner')).not.toContain('aria-labelledby="configuration"');
+});

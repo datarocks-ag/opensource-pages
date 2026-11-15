@@ -16,27 +16,33 @@
   "features": [
     {
       "title": "Buckets, identities, policies",
-      "body": "Idempotent provisioning of S3 buckets, IAM identities and bucket policies."
+      "body": "Idempotent provisioning of S3 buckets, IAM identities and bucket policies.",
+      "icon": "layers"
     },
     {
       "title": "Versioning and lifecycle",
-      "body": "Bucket versioning and object expiration rules."
+      "body": "Bucket versioning and object expiration rules.",
+      "icon": "clock"
     },
     {
       "title": "Two phases",
-      "body": "Identities are rendered into the s3.config SeaweedFS loads at boot, merged rather than overwritten; buckets and policies are applied once the cluster is healthy."
+      "body": "Identities are rendered into the s3.config SeaweedFS loads at boot, merged rather than overwritten; buckets and policies are applied once the cluster is healthy.",
+      "icon": "route"
     },
     {
       "title": "Policies from JSON files",
-      "body": "Bucket policies are loaded from JSON files and applied only when they drift."
+      "body": "Bucket policies are loaded from JSON files and applied only when they drift.",
+      "icon": "file"
     },
     {
       "title": "Dry run",
-      "body": "Previews every mutation against live state."
+      "body": "Previews every mutation against live state.",
+      "icon": "eye"
     },
     {
       "title": "Never destructive",
-      "body": "Never deletes buckets, identities or policies that are not in the config."
+      "body": "Never deletes buckets, identities or policies that are not in the config.",
+      "icon": "shield"
     }
   ],
   "configExample": {

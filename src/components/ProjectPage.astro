@@ -10,8 +10,9 @@ import { getRelease } from '../lib/releases';
 import { getConfigExample } from '../lib/examples';
 import { docsUrl, githubUrl, imageRef, projectUrl } from '../lib/urls';
 import { aboutDataRocks } from '../lib/site-copy';
+import { FEATURE_ICONS } from '../lib/feature-icons';
 
-/** A project landing page: header, pull command, features with config excerpt, custom sections, docs link. */
+/** A project landing page: header, pull command, feature cards, config excerpt, custom sections, docs link. */
 interface Props {
   project: ProjectData;
 }
@@ -61,27 +62,40 @@ const excerptName = project.configExample?.path.split('/').pop() ?? '';
   </section>
 
   <section class="block" aria-labelledby="what">
-    <div class:list={['dr-container', 'what', excerpt && 'with-excerpt']}>
-      <div class="features">
-        <h2 id="what">What it does</h2>
-        <ul>
-          {project.features.map((f) => <li><strong>{f.title}</strong> — {f.body}</li>)}
-        </ul>
-      </div>
-      {
-        excerpt && (
-          <div class="excerpt">
-            <CodeBlock
-              file={excerptName}
-              code={excerpt}
-              caption={`Excerpt from ${project.configExample!.path}`}
-              captionHref={githubUrl(project.repo, project.configExample!.path, release.tag ?? undefined)}
-            />
-          </div>
-        )
-      }
+    <div class="dr-container stack">
+      <h2 id="what">What it does</h2>
+      <ul class="feature-grid">
+        {
+          project.features.map((f) => (
+            <li class="feature-card">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={FEATURE_ICONS[f.icon]} />
+              </span>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </li>
+          ))
+        }
+      </ul>
     </div>
   </section>
+
+  {
+    excerpt && (
+      <section class="block white" aria-labelledby="configuration">
+        <div class="dr-container stack">
+          <h2 id="configuration">Configuration</h2>
+          <CodeBlock
+            file={excerptName}
+            code={excerpt}
+            caption={`Excerpt from ${project.configExample!.path}`}
+            captionHref={githubUrl(project.repo, project.configExample!.path, release.tag ?? undefined)}
+            wrap
+          />
+        </div>
+      </section>
+    )
+  }
 
   {
     project.sections.length > 0 && (
@@ -137,11 +151,11 @@ const excerptName = project.configExample?.path.split('/').pop() ?? '';
   .btn.primary:hover { background: var(--dr-navy); }
   .block { padding: 64px 0; }
   .white { background: #fff; border-block: 1px solid var(--dr-border); }
-  .what { display: grid; gap: 32px; grid-template-columns: minmax(0, 1fr); }
-  .what.with-excerpt { grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
-  .features { display: flex; flex-direction: column; gap: 20px; }
-  .features ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; line-height: 1.55; }
-  .excerpt { min-width: 0; }
+  .feature-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+  .feature-card { display: flex; flex-direction: column; gap: 10px; padding: 24px; background: #fff; border: 1px solid var(--dr-border); border-radius: 12px; }
+  .feature-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: var(--dr-tint); color: var(--dr-accent); }
+  .feature-card h3 { margin: 4px 0 0; font-size: 18px; }
+  .feature-card p { margin: 0; font-size: 15px; line-height: 1.55; }
   .docs-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 32px 40px; border: 1px solid var(--dr-border); border-radius: 16px; background: #fff; font-size: 18px; }
   .more { display: flex; flex-direction: column; gap: 24px; }
   .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }

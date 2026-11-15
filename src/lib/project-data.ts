@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { FEATURE_ICONS, isFeatureIcon, type FeatureIcon } from './feature-icons.ts';
 
 export type Section =
   | { type: 'table'; title: string; intro?: string; columns: string[]; rows: string[][] }
@@ -15,7 +16,8 @@ export interface ProjectData {
   tagline: string;
   highlights: string[];
   resources?: string[];
-  features: { title: string; body: string }[];
+  /** `icon` names one of FEATURE_ICONS. */
+  features: { title: string; body: string; icon: FeatureIcon }[];
   configExample?: { path: string; startLine?: number; endLine?: number };
   /** Folder in the repo that holds the docs. Defaults to `docs`. */
   docsPath: string;
@@ -95,7 +97,9 @@ function parseProject(file: string, v: unknown): ProjectData {
     ...(o.resources === undefined ? {} : { resources: strList(file, o, 'resources') }),
     features: list(file, o, 'features').map((f, i) => {
       const x = obj(file, f, `features[${i}]`);
-      return { title: str(file, x, 'title', `features[${i}]`), body: str(file, x, 'body', `features[${i}]`) };
+      const icon = str(file, x, 'icon', `features[${i}]`);
+      if (!isFeatureIcon(icon)) throw new DataError(file, `features[${i}].icon must be one of ${Object.keys(FEATURE_ICONS).join(', ')}`);
+      return { title: str(file, x, 'title', `features[${i}]`), body: str(file, x, 'body', `features[${i}]`), icon };
     }),
     ...(configExample ? { configExample } : {}),
     docsPath: o.docsPath === undefined ? 'docs' : str(file, o, 'docsPath'),

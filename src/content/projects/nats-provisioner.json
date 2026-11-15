@@ -12,23 +12,28 @@
   "features": [
     {
       "title": "Streams and consumers",
-      "body": "Idempotent provisioning of JetStream streams and their consumers."
+      "body": "Idempotent provisioning of JetStream streams and their consumers.",
+      "icon": "layers"
     },
     {
       "title": "Strategy",
-      "body": "update or create — globally or per stream."
+      "body": "update or create — globally or per stream.",
+      "icon": "sliders"
     },
     {
       "title": "Day durations",
-      "body": "Durations accept Go syntax and day notation such as 7d."
+      "body": "Durations accept Go syntax and day notation such as 7d.",
+      "icon": "clock"
     },
     {
       "title": "Immutable field warnings",
-      "body": "Warns on mismatched storage, retention, deny_delete and deny_purge."
+      "body": "Warns on mismatched storage, retention, deny_delete and deny_purge.",
+      "icon": "alert"
     },
     {
       "title": "Resilient and observable",
-      "body": "Exponential backoff for NATS connectivity; structured JSON logs."
+      "body": "Exponential backoff for NATS connectivity; structured JSON logs.",
+      "icon": "activity"
     }
   ],
   "configExample": {

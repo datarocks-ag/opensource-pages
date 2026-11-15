@@ -18,27 +18,33 @@
   "features": [
     {
       "title": "Realm resources",
-      "body": "Realms, clients, protocol mappers, realm and client roles, users and nested groups."
+      "body": "Realms, clients, protocol mappers, realm and client roles, users and nested groups.",
+      "icon": "layers"
     },
     {
       "title": "Master realm hardening",
-      "body": "Configure SSL and users on the master realm without full provisioning."
+      "body": "Configure SSL and users on the master realm without full provisioning.",
+      "icon": "shield"
     },
     {
       "title": "Service accounts",
-      "body": "Role mapping for machine-to-machine clients."
+      "body": "Role mapping for machine-to-machine clients.",
+      "icon": "key"
     },
     {
       "title": "Strategy",
-      "body": "update or create — globally or per realm."
+      "body": "update or create — globally or per realm.",
+      "icon": "sliders"
     },
     {
       "title": "Dry run",
-      "body": "--dry-run logs every intended change without applying it."
+      "body": "--dry-run logs every intended change without applying it.",
+      "icon": "eye"
     },
     {
       "title": "Resilient and observable",
-      "body": "Exponential backoff while Keycloak starts; structured JSON logs."
+      "body": "Exponential backoff while Keycloak starts; structured JSON logs.",
+      "icon": "activity"
     }
   ],
   "configExample": {
