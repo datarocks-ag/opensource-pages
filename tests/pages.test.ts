@@ -135,3 +135,12 @@ test('proxy page renders its flow, pattern table and sidecar sections', async ()
   expect(html).toContain('<table');
   expect(html).toContain('How a request flows');
 });
+
+test('collection page states how its tools behave, from the collection data', async () => {
+  const html = await container.renderToString(CollectionPage, { props: { collection } });
+  expect(collection.principles.length).toBeGreaterThan(0);
+  for (const p of collection.principles) {
+    expect(html).toContain(p.title);
+    expect(html).toContain(p.body);
+  }
+});

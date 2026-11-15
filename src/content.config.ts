@@ -61,6 +61,7 @@ const collectionDefs = defineCollection({
     name: z.string(),
     description: z.string(),
     steps: z.array(z.object({ title: z.string(), body: z.string(), code: z.string() })),
+    principles: z.array(z.object({ title: z.string(), body: z.string() })),
     conventions: z.array(z.object({ label: z.string(), supported: z.array(z.string()) })),
     compose: z.object({ file: z.string(), code: z.string() }),
   }),
