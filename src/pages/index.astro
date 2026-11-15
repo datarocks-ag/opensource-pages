@@ -1,9 +1,429 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
+import TileGrid from '../components/TileGrid.astro';
+import FlowStrip from '../components/FlowStrip.astro';
+import Chip from '../components/Chip.astro';
+import BrandBand from '../components/BrandBand.astro';
+import { loadCollections, loadProjects } from '../lib/project-data';
+import { getRelease } from '../lib/releases';
+import { collectionUrl, projectUrl } from '../lib/urls';
+import { aboutDataRocks } from '../lib/site-copy';
+
+const projects = loadProjects();
+const collections = loadCollections().map((collection) => ({
+  ...collection,
+  members: projects
+    .filter((p) => p.collection === collection.slug)
+    .map((p) => ({ ...p, version: getRelease(p.repo).version })),
+}));
+const standalone = projects.filter((p) => p.collection === undefined).map((p) => ({ ...p, version: getRelease(p.repo).version }));
+
+const facts = [`${projects.length} projects`, 'MIT licensed', 'Written in Go', 'Images on ghcr.io', 'CI on every repo'];
+
+// Example traffic for the proxy illustration, not project data.
+const outcomes = [
+  { kind: 'allowed', host: 'github.com', result: 'allowed' },
+  { kind: 'rewritten', host: 'api.production.com → 10.20.30.40', result: 'rewritten' },
+  { kind: 'blocked', host: 'ads.tiktok.com', result: '403 blocked' },
+] as const;
+
+const principles = [
+  { num: '01', title: 'Declarative', body: 'Behaviour lives in one plain YAML file you can review, diff and version. Your config is the documentation of your environment.' },
+  { num: '02', title: 'Safe by default', body: 'Provisioners never remove what they did not create; the proxy blocks what is not allowed. Defaults fail closed, not open.' },
+  { num: '03', title: 'Observable', body: 'Structured logs, Prometheus metrics and health endpoints where they matter. No silent failures.' },
+  { num: '04', title: 'Shipped properly', body: 'CI on every repo, container images on ghcr.io, semantic versions with release notes.' },
+];
 ---
 
 <SiteLayout title="Open source at Data Rocks" description="Open source infrastructure tooling from Data Rocks AG.">
-  <div class="dr-container">
-    <h1>Open source at Data Rocks</h1>
-  </div>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="dr-container hero-inner">
+      <div class="hero-copy">
+        <span class="eyebrow">oss.datarocks.ch</span>
+        <h1 id="hero-title">Open source<br />at Data Rocks</h1>
+        <p class="lead">The tooling we build for our own platform work — published under the MIT license, so you can run it in your stack too.</p>
+        <div class="actions">
+          <a class="btn primary" href="#projects">Browse projects</a>
+          <a class="btn" href="https://github.com/datarocks-ag">github.com/datarocks-ag</a>
+        </div>
+      </div>
+      <div class="hero-tiles"><TileGrid /></div>
+    </div>
+  </section>
+
+  <section class="facts" aria-label="At a glance">
+    <ul class="dr-container">
+      {facts.map((fact) => <li>{fact}</li>)}
+    </ul>
+  </section>
+
+  <section id="projects" class="projects" aria-labelledby="projects-title">
+    <div class="dr-container stack">
+      <div class="heading">
+        <h2 id="projects-title">Projects</h2>
+        <p>Collections of tools that share a purpose and a way of working — and standalone projects.</p>
+      </div>
+
+      {
+        collections.map((collection) => (
+          <article class="card" data-collection={collection.slug}>
+            <div class="card-head">
+              <div class="card-intro">
+                <span class="eyebrow">COLLECTION · {collection.members.length} TOOLS</span>
+                <h3>{collection.name}</h3>
+                <p>{collection.description}</p>
+              </div>
+              <a class="btn" href={collectionUrl(collection.slug)}>View collection →</a>
+            </div>
+            <div class="tools">
+              {collection.members.map((p) => (
+                <a class="tool" href={projectUrl(p.repo)}>
+                  <span class="tool-top">
+                    <span class="tool-name">{p.name}</span>
+                    {p.version && <span class="version">{p.version}</span>}
+                  </span>
+                  {p.resources && <span class="tool-res">{p.resources.slice(0, 5).join(', ')}</span>}
+                </a>
+              ))}
+            </div>
+          </article>
+        ))
+      }
+
+      {
+        standalone.map((p) => (
+          <article class="card standalone">
+            <div class="standalone-copy">
+              <span class="eyebrow">PROJECT</span>
+              <div class="title-row">
+                <h3 class="repo">{p.repo}</h3>
+                {p.version && <span class="version">{p.version}</span>}
+              </div>
+              <p>{p.tagline}</p>
+              <ul class="chips" aria-label="Highlights">
+                {p.highlights.map((h) => <li><Chip>{h}</Chip></li>)}
+              </ul>
+              <a class="btn self-start" href={projectUrl(p.repo)}>View project →</a>
+            </div>
+            {p.repo === 'go-egress-mitm-proxy' && <FlowStrip outcomes={[...outcomes]} />}
+          </article>
+        ))
+      }
+
+      <div class="next">
+        <div>
+          <span class="muted-label">COMING NEXT</span>
+          <p class="next-title">More projects are on their way</p>
+        </div>
+        <a href="https://github.com/datarocks-ag">Follow on GitHub →</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="principles" class="principles" aria-labelledby="principles-title">
+    <div class="dr-container stack">
+      <div class="heading">
+        <h2 id="principles-title">How we build</h2>
+        <p>Every project we publish follows the same engineering baseline.</p>
+      </div>
+      <div class="principle-grid">
+        {
+          principles.map((p) => (
+            <div class="principle">
+              <span class="eyebrow">{p.num}</span>
+              <h3>{p.title}</h3>
+              <p>{p.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <BrandBand title="Data Rocks AG" text={aboutDataRocks} />
 </SiteLayout>
+
+<style>
+  .eyebrow {
+    font-family: var(--dr-font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dr-accent);
+  }
+  .muted-label {
+    font-family: var(--dr-font-mono);
+    font-size: 13px;
+    color: var(--dr-muted);
+  }
+  p {
+    margin: 0;
+  }
+  .hero-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 56px;
+    padding-top: 88px;
+    padding-bottom: 88px;
+  }
+  .hero-copy {
+    flex: 1 1 460px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  h1 {
+    font-weight: 700;
+    font-size: clamp(2.75rem, 8vw, 4rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+  .lead {
+    font-size: 20px;
+    line-height: 1.55;
+    max-width: 520px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 8px;
+  }
+  .hero-tiles {
+    flex: 0 1 456px;
+    min-width: 0;
+  }
+  .btn {
+    padding: 12px 18px;
+    border: 1px solid var(--dr-border-strong);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--dr-navy);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .btn.primary {
+    padding: 14px 22px;
+    background: var(--dr-accent);
+    border-color: var(--dr-accent);
+    color: #fff;
+  }
+  .btn:hover {
+    background: var(--dr-tint);
+  }
+  .btn.primary:hover {
+    background: var(--dr-navy);
+  }
+  .self-start {
+    align-self: flex-start;
+  }
+  .facts {
+    border-block: 1px solid var(--dr-border);
+    background: #fff;
+  }
+  .facts ul {
+    list-style: none;
+    margin: 0 auto;
+    padding-top: 28px;
+    padding-bottom: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px 24px;
+    font-family: var(--dr-font-mono);
+    font-size: 14px;
+  }
+  .projects,
+  .principles {
+    padding: 112px 0;
+  }
+  .principles {
+    background: #fff;
+    border-block: 1px solid var(--dr-border);
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .principles .stack {
+    gap: 48px;
+  }
+  .heading {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 640px;
+  }
+  h2 {
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    letter-spacing: -0.02em;
+  }
+  .heading p {
+    font-size: 18px;
+    line-height: 1.55;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 40px;
+    background: #fff;
+    border: 1px solid var(--dr-border);
+    border-radius: 16px;
+  }
+  .card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .card-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 620px;
+  }
+  .card-intro h3 {
+    font-weight: 700;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+  }
+  .card-intro p,
+  .standalone-copy > p {
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 16px;
+  }
+  .tool {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 22px;
+    border: 1px solid var(--dr-border);
+    border-radius: 12px;
+    background: #fafafe;
+    color: var(--dr-text);
+    text-decoration: none;
+  }
+  .tool:hover {
+    border-color: var(--dr-accent);
+  }
+  .tool-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .tool-name {
+    font-family: var(--dr-font-head);
+    font-weight: 600;
+    font-size: 20px;
+    color: var(--dr-navy);
+  }
+  .version {
+    font-family: var(--dr-font-mono);
+    font-size: 12px;
+    color: var(--dr-muted);
+  }
+  .tool-res {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .standalone {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 40px;
+  }
+  .standalone-copy {
+    flex: 1 1 420px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .repo {
+    font-family: var(--dr-font-mono);
+    font-weight: 500;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  .chips {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .next {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 32px 40px;
+    border: 1.5px dashed var(--dr-border-strong);
+    border-radius: 16px;
+  }
+  .next-title {
+    font-family: var(--dr-font-head);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--dr-navy);
+  }
+  .next a {
+    font-weight: 600;
+  }
+  .principle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 40px;
+  }
+  .principle {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 2px solid var(--dr-navy);
+  }
+  .principle h3 {
+    font-weight: 600;
+    font-size: 22px;
+  }
+  .principle p {
+    line-height: 1.55;
+  }
+  @media (max-width: 640px) {
+    .hero-inner {
+      padding-top: 56px;
+      padding-bottom: 56px;
+    }
+    .projects,
+    .principles {
+      padding: 64px 0;
+    }
+    .card {
+      padding: 24px;
+    }
+    .next {
+      padding: 24px;
+    }
+  }
+</style>

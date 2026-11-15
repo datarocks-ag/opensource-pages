@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { basename, join } from 'node:path';
 
 export type Section =
   | { type: 'table'; title: string; intro?: string; columns: string[]; rows: string[][] }
@@ -42,7 +41,8 @@ export class DataError extends Error {
   }
 }
 
-const root = resolve(fileURLToPath(import.meta.url), '../../..');
+// Resolved from cwd, not import.meta.url: Astro bundles this module into dist/chunks.
+const root = process.cwd();
 const DEFAULT_PROJECTS_DIR = join(root, 'src/content/projects');
 const DEFAULT_COLLECTIONS_DIR = join(root, 'src/content/collections');
 
