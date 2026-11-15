@@ -143,3 +143,43 @@ test('unparseable frontmatter throws FrontmatterError', () => {
   expect(() => rewriteMarkdown('---\ntitle: "open\n---\nBody', ctx)).toThrow(FrontmatterError);
   expect(() => rewriteMarkdown('---\n- just\n- a list\n---\nBody', ctx)).toThrow(FrontmatterError);
 });
+
+test('repeated top-level keys keep the first and warn', () => {
+  const warnings: string[] = [];
+  const out = rewriteMarkdown('---\ntitle: First\ntitle: Second\ndescription: A\ndescription: B\nsidebar:\n  order: 1\nsidebar:\n  order: 2\n---\nBody\n', { ...ctx, warn: (m) => warnings.push(m) });
+  expect(out.match(/^title:/gm)).toHaveLength(1);
+  expect(out.match(/^description:/gm)).toHaveLength(1);
+  expect(out.match(/^sidebar:/gm)).toHaveLength(1);
+  expect(out).toContain('title: "First"');
+  expect(out).toContain('description: "A"');
+  expect(out).toContain('  order: 1');
+  expect(out).not.toContain('order: 2');
+  expect(warnings).toHaveLength(3);
+  expect(warnings.join()).toMatch(/"title".*"description".*"sidebar"/);
+});
+
+test('repeated nested sidebar keys keep the first and warn', () => {
+  const warnings: string[] = [];
+  const out = rewriteMarkdown('---\nsidebar:\n  order: 1\n  label: A\n  order: 2\n  label: B\n---\n# T\n', { ...ctx, warn: (m) => warnings.push(m) });
+  expect(out.match(/^ {2}order:/gm)).toHaveLength(1);
+  expect(out.match(/^ {2}label:/gm)).toHaveLength(1);
+  expect(out).toContain('  order: 1');
+  expect(out).toContain('  label: "A"');
+  expect(warnings).toEqual([
+    'duplicate frontmatter key "sidebar.order" ignored, first occurrence kept',
+    'duplicate frontmatter key "sidebar.label" ignored, first occurrence kept',
+  ]);
+});
+
+test('duplicate keys are tolerated without a warn callback', () => {
+  const out = rewriteMarkdown('---\ntitle: A\ntitle: B\n---\nBody\n', ctx);
+  expect(out.match(/^title:/gm)).toHaveLength(1);
+});
+
+test('empty title or description is dropped so the H1 title applies', () => {
+  for (const empty of ['""', "''"]) {
+    const out = rewriteMarkdown(`---\ntitle: ${empty}\ndescription: ${empty}\n---\n# From H1\n`, ctx);
+    expect(out).toContain('title: "From H1"');
+    expect(out).not.toContain('description');
+  }
+});

@@ -288,6 +288,14 @@ test('a file with unparseable frontmatter is skipped with a warning; the rest is
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/index.md'))).toBe(true);
 });
 
+test('duplicate frontmatter keys become a warning naming repo and file, and the page is still written', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/index.md': '---\ntitle: A\ntitle: B\n---\nBody' } } });
+  const info = await syncProject(pg, gh, tmp);
+  expect(info.warnings).toContain('postgres-provisioner: docs/index.md: duplicate frontmatter key "title" ignored, first occurrence kept');
+  const out = readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8');
+  expect(out.match(/^title:/gm)).toHaveLength(1);
+});
+
 test('repo frontmatter is reduced to title, description and sidebar on disk', async () => {
   const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/index.md': '---\ntitle: T\nsidebar: 3\ntemplate: splash\n---\nBody' } } });
   await syncProject(pg, gh, tmp);
