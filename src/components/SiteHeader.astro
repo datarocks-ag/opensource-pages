@@ -35,18 +35,22 @@ const { active } = Astro.props;
     padding-top: 0.875rem;
     padding-bottom: 0.875rem;
   }
+  /*
+   * Inline layout so the suffix sits on the wordmark's baseline: the wordmark's baseline is at 79.5%
+   * of the logo's height, so the logo drops by the remaining 20.5% below the text baseline.
+   */
   .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
+    white-space: nowrap;
     text-decoration: none;
   }
   .brand img {
-    display: block;
+    display: inline-block;
     height: 28px;
     width: auto;
+    vertical-align: calc(28px * -0.205);
   }
   .suffix {
+    margin-inline-start: 0.625rem;
     font-family: var(--dr-font-mono);
     font-size: 0.875rem;
     color: var(--dr-muted);
