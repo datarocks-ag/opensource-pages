@@ -1,0 +1,127 @@
+---
+interface Props {
+  outcomes: { kind: 'allowed' | 'rewritten' | 'blocked'; host: string; result: string }[];
+}
+const { outcomes } = Astro.props;
+const icons = { allowed: '✓', rewritten: '↪', blocked: '✕' } as const;
+---
+
+<figure class="flow-strip" aria-label="Example request flow through the proxy">
+  <div class="route" aria-hidden="true">
+    <span class="app">app</span>
+    <span class="arrow">→</span>
+    <span class="proxy">
+      <svg width="16" height="16" viewBox="0 0 18 18"
+        ><path d="M9 1 A8 8 0 0 0 9 17 Z" fill="#0A017B"></path><path
+          d="M9 1 A8 8 0 0 1 9 17 Z"
+          fill="#1301E9"></path></svg
+      >proxy
+    </span>
+  </div>
+  <ul>
+    {
+      outcomes.map((o) => (
+        <li class={o.kind}>
+          <span class="icon" aria-hidden="true">{icons[o.kind]}</span>
+          <span class="host">{o.host}</span>
+          <span class="result">{o.result}</span>
+        </li>
+      ))
+    }
+  </ul>
+</figure>
+
+<style>
+  .flow-strip {
+    flex: 1 1 380px;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    background: #fafafe;
+    border: 1px solid var(--dr-border);
+    border-radius: 14px;
+  }
+  .route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  .app {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--dr-navy);
+    color: #fff;
+    font-family: var(--dr-font-head);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .arrow {
+    color: var(--dr-accent);
+    font-size: 20px;
+  }
+  .proxy {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--dr-border-strong);
+    border-radius: 8px;
+    background: #fff;
+    font-family: var(--dr-font-mono);
+    font-size: 13px;
+  }
+  ul {
+    list-style: none;
+    margin: 0 0 0 22px;
+    padding: 0 0 0 16px;
+    border-left: 2px solid var(--dr-border-strong);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--dr-font-mono);
+    font-size: 13px;
+    --fg: var(--dr-ok);
+    --bg: #d9f4e8;
+  }
+  li.rewritten {
+    --fg: var(--dr-accent);
+    --bg: var(--dr-tint);
+  }
+  li.blocked {
+    --fg: var(--dr-blocked);
+    --bg: #fde4e1;
+  }
+  .icon {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+  .host {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--dr-text);
+  }
+  .result {
+    color: var(--fg);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+</style>

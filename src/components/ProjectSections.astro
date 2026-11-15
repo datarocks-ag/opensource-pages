@@ -1,0 +1,29 @@
+---
+import type { Section } from '../lib/project-data';
+import TableSection from './section/TableSection.astro';
+import FlowSection from './section/FlowSection.astro';
+import CodeSection from './section/CodeSection.astro';
+import StepsSection from './section/StepsSection.astro';
+
+interface Props {
+  sections: Section[];
+}
+const { sections } = Astro.props;
+---
+
+<div class="sections">
+  {
+    sections.map((s) => {
+      switch (s.type) {
+        case 'table': return <TableSection {...s} />;
+        case 'flow': return <FlowSection {...s} />;
+        case 'code': return <CodeSection {...s} />;
+        case 'steps': return <StepsSection {...s} />;
+      }
+    })
+  }
+</div>
+
+<style>
+  .sections { display: flex; flex-direction: column; gap: 64px; }
+</style>

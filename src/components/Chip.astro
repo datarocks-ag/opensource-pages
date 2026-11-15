@@ -1,0 +1,27 @@
+---
+interface Props {
+  tone?: 'default' | 'accent';
+}
+const { tone = 'default' } = Astro.props;
+---
+
+<span class:list={['chip', tone === 'accent' && 'chip-accent']}><slot /></span>
+
+<style>
+  .chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid var(--dr-border-strong);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--dr-text);
+    font-family: var(--dr-font-mono);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .chip-accent {
+    background: var(--dr-tint);
+    border-color: var(--dr-accent);
+    color: var(--dr-accent);
+  }
+</style>

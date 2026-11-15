@@ -1,0 +1,30 @@
+---
+import CodeBlock from '../CodeBlock.astro';
+
+interface Props {
+  title: string;
+  intro?: string;
+  file: string;
+  code: string;
+  aside?: string;
+}
+const { title, intro, file, code, aside } = Astro.props;
+---
+
+<section class="block">
+  <h2>{title}</h2>
+  {intro && <p class="intro">{intro}</p>}
+  <div class="body">
+    <div class="code"><CodeBlock file={file} code={code} /></div>
+    {aside && <aside>{aside}</aside>}
+  </div>
+</section>
+
+<style>
+  .block { display: flex; flex-direction: column; gap: 16px; }
+  h2 { margin: 0; font-family: var(--dr-font-head); font-weight: 600; font-size: 28px; color: var(--dr-navy); }
+  .intro { margin: 0; max-width: 720px; color: var(--dr-text); }
+  .body { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .code { flex: 2 1 420px; min-width: 0; }
+  aside { flex: 1 1 240px; min-width: 0; padding: 16px 20px; background: var(--dr-tint); border-radius: 12px; color: var(--dr-text); }
+</style>
