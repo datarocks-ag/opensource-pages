@@ -58,3 +58,9 @@ test('company CTA links to datarocks.ch', () => {
   expect(html).toContain('Visit datarocks.ch');
   expect(html).toContain('href="https://datarocks.ch"');
 });
+
+test('How we build only makes claims that hold for every project, not provisioner behaviour', () => {
+  const section = html.match(/<section[^>]*id="principles"[\s\S]*?<\/section>/)![0];
+  expect(section).not.toMatch(/provisioner/i);
+  expect(section).not.toContain('YAML');
+});

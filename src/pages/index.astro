@@ -28,11 +28,11 @@ const outcomes = [
 ] as const;
 
 const principles = [
-  { num: '01', title: 'Declarative', body: 'Behaviour lives in one plain YAML file you can review, diff and version. Your config is the documentation of your environment.' },
-  { num: '02', title: 'Safe by default', body: 'Provisioners never remove what they did not create; the proxy blocks what is not allowed. Defaults fail closed, not open.' },
-  { num: '03', title: 'Observable', body: 'Structured logs, Prometheus metrics and health endpoints where they matter. No silent failures.' },
+  { num: '01', title: 'Open by default', body: 'MIT licensed and developed in the open on GitHub. Issues and pull requests are welcome.' },
+  { num: '02', title: 'Safe defaults', body: 'Our tools fail closed rather than open and only change what they own. Unsafe behaviour is something you opt into.' },
+  { num: '03', title: 'Clear when it fails', body: 'Structured logs and meaningful exit codes, so a failure surfaces in your pipeline instead of hiding in it.' },
   { num: '04', title: 'Shipped properly', body: 'CI on every repo, container images on ghcr.io, semantic versions with release notes.' },
-];
+]
 ---
 
 <SiteLayout title="Open source at Data Rocks" description="Open source infrastructure tooling from Data Rocks AG.">
