@@ -1,11 +1,11 @@
-# oss.datarocks.ch — Design
+# oss.datarocks.org — Design
 
 Status: draft for approval · 2026-11-15
 Visual design: https://claude.ai/artifact/DYXeNTGFp9pRyiurGmtUCW (canvas: Landing, Provisioners, keycloak-provisioner, Docs, go-egress-mitm-proxy, hero tiles)
 
 ## Intent
 
-Data Rocks publishes infrastructure tooling under MIT on GitHub (`datarocks-ag`). There is no entry point that presents these projects together. `oss.datarocks.ch` is that entry point.
+Data Rocks publishes infrastructure tooling under MIT on GitHub (`datarocks-ag`). There is no entry point that presents these projects together. `oss.datarocks.org` is that entry point.
 
 It has two jobs, and they reinforce each other:
 
@@ -40,11 +40,11 @@ The primary call to action for the company side is **visit datarocks.ch**. No co
 
 ## Constraints
 
-- Hosted on **GitHub Pages**, custom domain `oss.datarocks.ch`.
+- Hosted on **GitHub Pages**, custom domain `oss.datarocks.org`.
 - Site repo lives at `/home/ssc/work/datarocks/opensource` (GitHub repo under `datarocks-ag`, name to be chosen at creation).
 - TypeScript, **pnpm**.
 - Dependencies agreed in this design: **Astro**, **Starlight** (Astro docs theme, brings Pagefind search), **starlight-sidebar-topics** (one sidebar per project inside a single Starlight instance), **@fontsource/** packages (self-hosted fonts), **remark/unified** helpers (link and image rewriting in fetched docs), **vitest** (build tests). Anything beyond these needs discussion.
-- Infra outside the repo needs explicit approval before touching: DNS `CNAME` record for `oss.datarocks.ch`, GitHub Pages settings, and the GitHub Actions workflow in the new repo.
+- Infra outside the repo needs explicit approval before touching: DNS `CNAME` record for `oss.datarocks.org`, GitHub Pages settings, and the GitHub Actions workflow in the new repo.
 - Brand: taken from datarocks.ch (see Visual design).
 
 ## Approaches considered
@@ -74,7 +74,7 @@ Projects are addressed by **repo name** (unique, stable, already what people kno
 
 **Landing**
 - Header: logo + "/ open source", nav (Projects, How we build, GitHub ↗, **datarocks.ch ↗** as the primary button).
-- Hero: eyebrow `oss.datarocks.ch`, H1 "Open source at Data Rocks", one-line intro, buttons *Browse projects* and *github.com/datarocks-ag*. Right side: the **half-circle tile grid** (4×4 tiles built from the logo mark, quarter-turn on hover; purely decorative, `aria-hidden`).
+- Hero: eyebrow `oss.datarocks.org`, H1 "Open source at Data Rocks", one-line intro, buttons *Browse projects* and *github.com/datarocks-ag*. Right side: the **half-circle tile grid** (4×4 tiles built from the logo mark, quarter-turn on hover; purely decorative, `aria-hidden`).
 - Facts strip: project count (computed), MIT licensed, Written in Go, Images on ghcr.io, CI on every repo. Only facts true for all listed projects.
 - Projects: one card per collection (Provisioners: description, one mini tile per tool with version and what it provisions) and one card per standalone project (proxy: pitch, highlight chips, small *request-flow strip* app → proxy → allowed / rewritten / 403 blocked). Then a dashed "Coming next" placeholder linking to GitHub.
 - How we build: four principles — Declarative · Safe by default · Observable · Shipped properly.
@@ -167,8 +167,8 @@ Brand from datarocks.ch:
 
 ### Deployment
 
-- GitHub Actions: install (pnpm), build, deploy to Pages. `public/CNAME` = `oss.datarocks.ch`.
-- DNS: `CNAME oss.datarocks.ch → datarocks-ag.github.io` — **needs approval / done by whoever owns DNS**.
+- GitHub Actions: install (pnpm), build, deploy to Pages. `public/CNAME` = `oss.datarocks.org`.
+- DNS: `CNAME oss.datarocks.org → datarocks-ag.github.io` — **needs approval / done by whoever owns DNS**.
 
 ## Content still owed by Data Rocks
 

@@ -6,7 +6,7 @@ import { loadProjects } from './src/lib/project-data.ts';
 import { getRelease } from './src/lib/releases.ts';
 
 export default defineConfig({
-  site: 'https://oss.datarocks.ch',
+  site: 'https://oss.datarocks.org',
   integrations: [
     starlight({
       title: 'Data Rocks Open Source',
