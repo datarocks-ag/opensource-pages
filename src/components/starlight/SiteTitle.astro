@@ -1,0 +1,32 @@
+---
+/** Docs header title: the Data Rocks logo plus "/ docs", linking back to the landing page. */
+---
+
+<a href="/" class="dr-site-title">
+  <img src="/datarocks-logo.svg" alt="Data Rocks" height="24" />
+  <span class="dr-site-title__docs" aria-hidden="true">/ docs</span>
+  <span class="sr-only">docs</span>
+</a>
+
+<style>
+  .dr-site-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+  }
+  .dr-site-title img {
+    height: 1.5rem;
+    width: auto;
+  }
+  .dr-site-title__docs {
+    font-family: var(--dr-font-mono);
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  /* The logo SVG is dark; keep it legible on the dark theme. */
+  :global([data-theme='dark']) .dr-site-title img {
+    filter: brightness(0) invert(1);
+  }
+</style>

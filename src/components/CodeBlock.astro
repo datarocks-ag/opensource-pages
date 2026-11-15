@@ -1,0 +1,91 @@
+---
+interface Props {
+  /** File name shown in the header bar. */
+  file: string;
+  /** Source text; rendered escaped, without highlighting. */
+  code: string;
+  caption?: string;
+  captionHref?: string;
+}
+const { file, code, caption, captionHref } = Astro.props;
+---
+
+<figure class="code-block">
+  <div class="bar">
+    <span class="file">{file}</span>
+    <button type="button" aria-label="Copy code" data-copy-code>Copy</button>
+  </div>
+  <pre tabindex="0"><code>{code}</code></pre>
+  {
+    caption && (
+      <figcaption>
+        {captionHref ? <a href={captionHref}>{caption}</a> : caption}
+      </figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .code-block {
+    margin: 0;
+    min-width: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--dr-code-bg);
+    color: var(--dr-code-text);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 8px 8px 16px;
+    border-bottom: 1px solid #262552;
+    font-family: var(--dr-font-mono);
+    font-size: 13px;
+    color: #a6a8cc;
+  }
+  button {
+    min-width: 44px;
+    min-height: 36px;
+    background: #262552;
+    color: var(--dr-code-text);
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    cursor: pointer;
+  }
+  pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: var(--dr-font-mono);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  figcaption {
+    padding: 10px 16px;
+    border-top: 1px solid #262552;
+    font-size: 13px;
+    color: #a6a8cc;
+  }
+  figcaption a {
+    color: var(--dr-code-text);
+  }
+</style>
+
+<script>
+  document.addEventListener('click', async (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>('[data-copy-code]');
+    if (!button) return;
+    const text = button.closest('figure')?.querySelector('code')?.textContent ?? '';
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      return;
+    }
+    const label = button.textContent;
+    button.textContent = 'Copied';
+    setTimeout(() => (button.textContent = label), 1500);
+  });
+</script>

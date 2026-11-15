@@ -1,0 +1,27 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { getRelease } from '../../lib/releases';
+
+/** Default Starlight footer plus the release a synced docs page was built from. */
+const { id } = Astro.locals.starlightRoute;
+const repo = id.split('/')[0];
+const release = id.startsWith(`${repo}/docs`) ? getRelease(repo) : null;
+const version = release?.version ?? null;
+---
+
+{
+  version && (
+    <p class="dr-docs-version">
+      Docs for <code>{version}</code> · built from the release tag
+    </p>
+  )
+}
+<Default {...Astro.props}><slot /></Default>
+
+<style>
+  .dr-docs-version {
+    margin: 2rem 0 0;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+</style>

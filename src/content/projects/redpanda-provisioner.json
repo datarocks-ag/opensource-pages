@@ -1,0 +1,47 @@
+{
+  "repo": "redpanda-provisioner",
+  "name": "Redpanda",
+  "collection": "provisioners",
+  "order": 4,
+  "tagline": "Topics, Schema Registry and access control for Redpanda and Kafka. Never deletes, never shrinks partitions.",
+  "highlights": [
+    "never deletes",
+    "never decreases partition count"
+  ],
+  "resources": [
+    "topics",
+    "schemas",
+    "SASL users",
+    "ACLs"
+  ],
+  "features": [
+    {
+      "title": "Topics, schemas, users, ACLs",
+      "body": "Idempotent provisioning of topics, Schema Registry schemas, SASL users and ACLs."
+    },
+    {
+      "title": "Schema Registry",
+      "body": "Avro, Protobuf and JSON Schema."
+    },
+    {
+      "title": "SASL/SCRAM",
+      "body": "SCRAM-SHA-256 and SCRAM-SHA-512."
+    },
+    {
+      "title": "ACLs",
+      "body": "Literal and prefixed resource patterns."
+    },
+    {
+      "title": "Never destructive",
+      "body": "Never deletes topics, schemas, users or ACLs that are not in the config, and warns instead of decreasing a partition count."
+    },
+    {
+      "title": "Resilient and observable",
+      "body": "Exponential backoff for broker and Schema Registry connectivity; structured JSON logs."
+    }
+  ],
+  "configExample": {
+    "path": "config.example.yaml",
+    "startLine": 26
+  }
+}

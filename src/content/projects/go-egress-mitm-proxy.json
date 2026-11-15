@@ -1,0 +1,113 @@
+{
+  "repo": "go-egress-mitm-proxy",
+  "name": "Egress MITM proxy",
+  "order": 1,
+  "tagline": "A MITM HTTP/HTTPS proxy that implements split-brain DNS for egress traffic control in containerised environments. Decide per host where traffic goes, what gets through and which headers travel with it.",
+  "highlights": [
+    "Kubernetes sidecar",
+    "outbound HTTP/2"
+  ],
+  "features": [
+    {
+      "title": "Split-brain DNS",
+      "body": "via TCP dial interception, routing to target_ip or target_host"
+    },
+    {
+      "title": "Path-based routing",
+      "body": "different paths on one domain to different backends"
+    },
+    {
+      "title": "ACL",
+      "body": "whitelist, blacklist and passthrough with exact, wildcard and regex matching"
+    },
+    {
+      "title": "Header policies",
+      "body": "inject headers, strip sensitive ones, automatic X-Request-ID"
+    },
+    {
+      "title": "Upstream TLS trust",
+      "body": "custom PEM bundle or PKCS#12 truststore, per-target bypass"
+    },
+    {
+      "title": "Hot reload",
+      "body": "apply config changes with SIGHUP, no restart"
+    },
+    {
+      "title": "Audit & tracing",
+      "body": "JSON log of blocked requests, opt-in request traces with redaction"
+    },
+    {
+      "title": "Operable",
+      "body": "Prometheus metrics, health endpoints, graceful shutdown"
+    }
+  ],
+  "configExample": {
+    "path": "doc/examples/configuration.yaml"
+  },
+  "docsPath": "doc",
+  "sections": [
+    {
+      "type": "flow",
+      "title": "How a request flows",
+      "intro": "Your app keeps calling the real hostnames. The proxy decides at dial time — not in DNS — whether and where the connection goes.",
+      "steps": [
+        {
+          "title": "Intercept",
+          "body": "The app sends HTTP and HTTPS through the proxy. TLS is terminated with your own internal CA."
+        },
+        {
+          "title": "Check the ACL",
+          "body": "Whitelist, blacklist or passthrough. Anything unmatched follows default_policy — BLOCK answers 403."
+        },
+        {
+          "title": "Rewrite",
+          "body": "Route by domain and path to a target IP or host, change scheme or port, inject or drop headers."
+        },
+        {
+          "title": "Forward",
+          "body": "Dial the real target over HTTP/1.1 or HTTP/2, verified against your upstream CA bundle."
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Patterns that don't fail open",
+      "intro": "ACLs, rewrites and traces share one domain syntax. Matching is case-insensitive, trailing dots are stripped, and regex patterns are anchored — so a denylist entry can't be slipped past.",
+      "columns": [
+        "Pattern",
+        "Matches",
+        "Does not match"
+      ],
+      "rows": [
+        [
+          "example.com",
+          "example.com, EXAMPLE.com, example.com.",
+          "api.example.com"
+        ],
+        [
+          "*.example.com",
+          "api.example.com, a.b.example.com",
+          "example.com (the apex)"
+        ],
+        [
+          "*",
+          "every host",
+          "—"
+        ],
+        [
+          "~^(.+\\.)?example\\.com$",
+          "the apex and any subdomain",
+          "example.com.evil.net"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "title": "Run it as a sidecar",
+      "intro": "Point your app at the proxy with the standard proxy variables. /healthz and /readyz plug into Kubernetes probes; on SIGTERM it fails readiness first, then drains in-flight requests.",
+      "file": "deployment.yaml (app container)",
+      "code": "env:\n  - name: HTTPS_PROXY\n    value: \"http://localhost:8080\"\n  - name: HTTP_PROXY\n    value: \"http://localhost:8080\"",
+      "aside": "Change rules without a restart: send SIGHUP and the config reloads."
+    }
+  ]
+}

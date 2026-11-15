@@ -1,0 +1,64 @@
+---
+interface Props {
+  command: string;
+}
+const { command } = Astro.props;
+---
+
+<div class="command-line">
+  <span class="prompt" aria-hidden="true">$</span>
+  <code>{command}</code>
+  <button type="button" aria-label="Copy command" data-copy={command}>Copy</button>
+</div>
+
+<style>
+  .command-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    max-width: 680px;
+    box-sizing: border-box;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: var(--dr-code-bg);
+    color: var(--dr-code-text);
+    font-family: var(--dr-font-mono);
+    font-size: 14px;
+  }
+  .prompt {
+    color: #a6a8cc;
+  }
+  code {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font: inherit;
+  }
+  button {
+    min-width: 44px;
+    min-height: 36px;
+    background: #262552;
+    color: var(--dr-code-text);
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  // Delegated so any number of CommandLines on a page share one listener.
+  document.addEventListener('click', async (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>('button[data-copy]');
+    if (!button) return;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy ?? '');
+    } catch {
+      return;
+    }
+    button.textContent = 'Copied';
+    setTimeout(() => (button.textContent = 'Copy'), 1500);
+  });
+</script>

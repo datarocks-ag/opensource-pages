@@ -1,0 +1,45 @@
+{
+  "repo": "gcp-emulator-provisioner",
+  "name": "GCP emulators",
+  "collection": "provisioners",
+  "order": 5,
+  "tagline": "Pub/Sub and Cloud Storage state for local GCP emulators — and the same config runs against real Google Cloud.",
+  "highlights": [
+    "same config runs against real Google Cloud"
+  ],
+  "resources": [
+    "Pub/Sub topics",
+    "subscriptions",
+    "Cloud Storage buckets"
+  ],
+  "features": [
+    {
+      "title": "Topics, subscriptions, buckets",
+      "body": "Idempotent provisioning of Pub/Sub topics and subscriptions and Cloud Storage buckets."
+    },
+    {
+      "title": "Drift reconciliation",
+      "body": "Sends a minimal update mask: only the fields that actually changed."
+    },
+    {
+      "title": "Fixed-at-creation fields",
+      "body": "Fields Pub/Sub fixes at creation (filter, enable_message_ordering) are reported as warnings instead of failing the run."
+    },
+    {
+      "title": "Emulator gaps",
+      "body": "Gaps in the emulators that Google Cloud does not have are downgraded to warnings, so one config works against both."
+    },
+    {
+      "title": "Dry run",
+      "body": "Previews every mutation against live state."
+    },
+    {
+      "title": "Never destructive",
+      "body": "Never deletes topics, subscriptions or buckets that are not in the config."
+    }
+  ],
+  "configExample": {
+    "path": "config.example.yaml",
+    "startLine": 7
+  }
+}

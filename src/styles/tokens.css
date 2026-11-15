@@ -1,0 +1,19 @@
+:root {
+  --dr-accent: #1301e9;
+  --dr-navy: #0a017b;
+  --dr-navy-deep: #020165;
+  --dr-bg: #f7f7fb;
+  --dr-border: #e3e4ef;
+  --dr-border-strong: #c6c8dc;
+  --dr-text: #3b3d55;
+  --dr-muted: #55576f;
+  --dr-tint: #eeeff9;
+  --dr-code-bg: #0d0c2e;
+  --dr-code-text: #e8e9f7;
+  --dr-ok: #047857;
+  --dr-blocked: #b42318;
+
+  --dr-font-head: 'Montserrat', system-ui, sans-serif;
+  --dr-font-body: 'Nunito', system-ui, sans-serif;
+  --dr-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}

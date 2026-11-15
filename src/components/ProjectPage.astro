@@ -1,0 +1,157 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import BrandBand from './BrandBand.astro';
+import Chip from './Chip.astro';
+import CodeBlock from './CodeBlock.astro';
+import CommandLine from './CommandLine.astro';
+import ProjectSections from './ProjectSections.astro';
+import { loadProjects, type ProjectData } from '../lib/project-data';
+import { getRelease } from '../lib/releases';
+import { getConfigExample } from '../lib/examples';
+import { docsUrl, githubUrl, imageRef, projectUrl } from '../lib/urls';
+import { aboutDataRocks } from '../lib/site-copy';
+
+/** A project landing page: header, pull command, features with config excerpt, custom sections, docs link. */
+interface Props {
+  project: ProjectData;
+}
+const { project } = Astro.props;
+
+const release = getRelease(project.repo);
+const excerpt = project.configExample ? getConfigExample(project.repo) : null;
+const siblings = project.collection
+  ? loadProjects().filter((p) => p.collection === project.collection && p.repo !== project.repo)
+  : [];
+const collectionName = project.collection ? project.collection : null;
+
+// Without released docs the README at the tag (or main) is the closest equivalent.
+const docsHref = release.docsAvailable ? docsUrl(project.repo) : githubUrl(project.repo, 'README.md', release.tag ?? undefined);
+const docsLabel = release.docsAvailable ? 'Documentation' : 'Documentation on GitHub';
+const docsExternal = !release.docsAvailable;
+const changelogHref = release.changelogAvailable
+  ? `${docsUrl(project.repo)}changelog/`
+  : `${githubUrl(project.repo)}/releases`;
+const changelogLabel = release.changelogAvailable ? 'Changelog' : 'Releases';
+const excerptName = project.configExample?.path.split('/').pop() ?? '';
+---
+
+<SiteLayout title={`${project.repo} — Data Rocks Open Source`} description={project.tagline} active="projects">
+  <section class="head">
+    <div class="dr-container stack">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/#projects">projects</a> /
+        {collectionName && <><a href={`/${collectionName}/`}>{collectionName}</a> / </>}
+        {project.repo}
+      </nav>
+      <h1>{project.repo}</h1>
+      <p class="lead">{project.tagline}</p>
+      <ul class="chips" aria-label="Facts">
+        {release.version && <li><Chip tone="accent">{release.version} · latest</Chip></li>}
+        {release.license && <li><Chip>{release.license}</Chip></li>}
+        <li><Chip>Go</Chip></li>
+        {project.highlights.map((h) => <li><Chip>{h}</Chip></li>)}
+      </ul>
+      <div class="actions">
+        <a class="btn primary" href={githubUrl(project.repo)}>View on GitHub</a>
+        <a class="btn" href={docsHref} {...(docsExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}>{docsLabel}{docsExternal && ' ↗'}</a>
+        <a class="btn" href={changelogHref}>{changelogLabel}</a>
+      </div>
+      <CommandLine command={`docker pull ${imageRef(project.repo, release.version)}`} />
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="what">
+    <div class:list={['dr-container', 'what', excerpt && 'with-excerpt']}>
+      <div class="features">
+        <h2 id="what">What it does</h2>
+        <ul>
+          {project.features.map((f) => <li><strong>{f.title}</strong> — {f.body}</li>)}
+        </ul>
+      </div>
+      {
+        excerpt && (
+          <div class="excerpt">
+            <CodeBlock
+              file={excerptName}
+              code={excerpt}
+              caption={`Excerpt from ${project.configExample!.path}`}
+              captionHref={githubUrl(project.repo, project.configExample!.path, release.tag ?? undefined)}
+            />
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    project.sections.length > 0 && (
+      <section class="block white">
+        <div class="dr-container"><ProjectSections sections={project.sections} /></div>
+      </section>
+    )
+  }
+
+  <section class="block">
+    <div class="dr-container docs-callout">
+      <p>{release.docsAvailable ? 'Full documentation, configuration reference and how-tos.' : 'Documentation for this project lives in its README on GitHub.'}</p>
+      <a class="btn primary" href={docsHref} {...(docsExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}>
+        {release.docsAvailable ? 'Read the docs →' : 'Documentation on GitHub ↗'}
+      </a>
+    </div>
+  </section>
+
+  {
+    siblings.length > 0 && (
+      <section class="block white" aria-labelledby="more">
+        <div class="dr-container more">
+          <h2 id="more">More {collectionName}</h2>
+          <div class="tools">
+            {siblings.map((p) => (
+              <a class="tool" href={projectUrl(p.repo)}>
+                <span class="tool-name">{p.repo}</span>
+                {p.resources && <span class="tool-desc">{p.resources.slice(0, 5).join(', ')}</span>}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <BrandBand title="Data Rocks AG" text={aboutDataRocks} />
+</SiteLayout>
+
+<style>
+  p { margin: 0; }
+  .head { padding: 72px 0 56px; }
+  .stack { display: flex; flex-direction: column; gap: 24px; }
+  .crumbs { font-family: var(--dr-font-mono); font-size: 13px; color: var(--dr-muted); }
+  h1 { margin: 0; font-family: var(--dr-font-mono); font-weight: 500; font-size: clamp(1.75rem, 6vw, 3rem); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+  h2 { margin: 0; font-weight: 700; font-size: clamp(1.75rem, 4vw, 2.25rem); letter-spacing: -0.02em; }
+  .lead { font-size: 19px; line-height: 1.55; max-width: 760px; }
+  .chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { padding: 12px 18px; border: 1px solid var(--dr-border-strong); border-radius: 8px; background: #fff; color: var(--dr-navy); font-weight: 600; text-decoration: none; }
+  .btn.primary { background: var(--dr-accent); border-color: var(--dr-accent); color: #fff; }
+  .btn:hover { background: var(--dr-tint); }
+  .btn.primary:hover { background: var(--dr-navy); }
+  .block { padding: 64px 0; }
+  .white { background: #fff; border-block: 1px solid var(--dr-border); }
+  .what { display: grid; gap: 32px; grid-template-columns: minmax(0, 1fr); }
+  .what.with-excerpt { grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
+  .features { display: flex; flex-direction: column; gap: 20px; }
+  .features ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; line-height: 1.55; }
+  .excerpt { min-width: 0; }
+  .docs-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 32px 40px; border: 1px solid var(--dr-border); border-radius: 16px; background: #fff; font-size: 18px; }
+  .more { display: flex; flex-direction: column; gap: 24px; }
+  .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+  .tool { display: flex; flex-direction: column; gap: 8px; padding: 20px; border: 1px solid var(--dr-border); border-radius: 12px; background: #fafafe; color: var(--dr-text); text-decoration: none; }
+  .tool:hover { border-color: var(--dr-accent); }
+  .tool-name { font-family: var(--dr-font-mono); font-weight: 500; color: var(--dr-navy); overflow-wrap: anywhere; }
+  .tool-desc { font-size: 14px; line-height: 1.5; }
+  @media (max-width: 640px) {
+    .head { padding: 48px 0 32px; }
+    .block { padding: 40px 0; }
+    .docs-callout { padding: 24px; }
+  }
+</style>

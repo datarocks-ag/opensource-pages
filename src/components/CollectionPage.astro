@@ -1,0 +1,172 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import BrandBand from './BrandBand.astro';
+import CodeBlock from './CodeBlock.astro';
+import { loadProjects, type CollectionData } from '../lib/project-data';
+import { getRelease } from '../lib/releases';
+import { renderVersionPlaceholders } from '../lib/placeholders';
+import { githubUrl, imageRef, projectUrl } from '../lib/urls';
+import { aboutDataRocks, collectionUsage } from '../lib/site-copy';
+
+/** The collection landing page: how the tools work together, the tool list, shared conventions and a compose example. */
+interface Props {
+  collection: CollectionData;
+}
+const { collection } = Astro.props;
+
+const members = loadProjects()
+  .filter((p) => p.collection === collection.slug)
+  .map((p) => ({ ...p, version: getRelease(p.repo).version }));
+// Image reference without a tag: the card names the image, the version chip names the release.
+const imageRepo = (repo: string) => imageRef(repo, null).replace(/:latest$/, '');
+const compose = renderVersionPlaceholders(collection.compose.code, (repo) => getRelease(repo).version);
+---
+
+<SiteLayout title={`${collection.name} — Data Rocks Open Source`} description={collection.description} active="projects">
+  <section class="head">
+    <div class="dr-container stack">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="/#projects">projects</a> / {collection.slug}</nav>
+      <h1>{collection.name}</h1>
+      <p class="lead">{collection.description}</p>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="how">
+    <div class="dr-container stack">
+      <h2 id="how">How they work</h2>
+      <ol class="steps">
+        {
+          collection.steps.map((s) => (
+            <li>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+              <code>{s.code}</code>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="block white" aria-labelledby="tools">
+    <div class="dr-container stack">
+      <h2 id="tools">The tools</h2>
+      <div class="tools">
+        {
+          members.map((p) => (
+            <article class="tool">
+              <div class="tool-top">
+                <h3 class="tool-name">{p.repo}</h3>
+                {p.version && <span class="version">{p.version}</span>}
+              </div>
+              <p class="tool-desc">{p.tagline}</p>
+              {
+                p.resources && p.resources.length > 0 && (
+                  <ul class="resources" aria-label="Provisions">
+                    {p.resources.map((r) => <li>{r}</li>)}
+                  </ul>
+                )
+              }
+              <code class="tool-image">{imageRepo(p.repo)}</code>
+              <div class="tool-actions">
+                <a href={projectUrl(p.repo)}>Details →</a>
+                <a class="muted" href={githubUrl(p.repo)} rel="noopener noreferrer" target="_blank">GitHub ↗</a>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="conventions">
+    <div class="dr-container stack">
+      <h2 id="conventions">Shared conventions</h2>
+      <div class="scroll" style="overflow-x:auto" tabindex="0" role="region" aria-label="Conventions matrix">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Convention</th>
+              {members.map((p) => <th scope="col">{p.name}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {
+              collection.conventions.map((c) => (
+                <tr>
+                  <th scope="row">{c.label}</th>
+                  {members.map((p) =>
+                    c.supported.includes(p.repo) ? (
+                      <td class="yes" aria-label="supported">✓</td>
+                    ) : (
+                      <td class="no" aria-label="not supported">—</td>
+                    ),
+                  )}
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block white" aria-labelledby="together">
+    <div class="dr-container stack">
+      <h2 id="together">Use them together</h2>
+      <p class="lead small">{collectionUsage}</p>
+      <CodeBlock file={collection.compose.file} code={compose} />
+      <p class="guides">
+        Step-by-step:
+        <a href={`/${collection.slug}/guides/compose-stack/`}>Run provisioners in a Compose stack →</a>
+        · <a href={`/${collection.slug}/guides/`}>All guides</a>
+      </p>
+    </div>
+  </section>
+
+  <BrandBand title="Data Rocks AG" text={aboutDataRocks} />
+</SiteLayout>
+
+<style>
+  p { margin: 0; }
+  .head { padding: 72px 0 56px; }
+  .stack { display: flex; flex-direction: column; gap: 24px; }
+  .crumbs { font-family: var(--dr-font-mono); font-size: 13px; color: var(--dr-muted); }
+  h1 { margin: 0; font-weight: 700; font-size: clamp(2.25rem, 7vw, 3.5rem); letter-spacing: -0.03em; }
+  h2 { margin: 0; font-weight: 700; font-size: clamp(1.75rem, 4vw, 2.25rem); letter-spacing: -0.02em; }
+  .lead { font-size: 19px; line-height: 1.55; max-width: 760px; }
+  .lead.small { font-size: 17px; }
+  .block { padding: 72px 0; }
+  .white { background: #fff; border-block: 1px solid var(--dr-border); }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; counter-reset: step; }
+  .steps li { counter-increment: step; display: flex; flex-direction: column; gap: 10px; padding: 24px; background: #fff; border: 1px solid var(--dr-border); border-radius: 12px; }
+  .steps li::before { content: counter(step, decimal-leading-zero); font-family: var(--dr-font-mono); font-size: 13px; color: var(--dr-accent); }
+  .steps h3 { margin: 0; font-size: 20px; }
+  .steps code { align-self: flex-start; padding: 4px 10px; background: var(--dr-tint); border-radius: 6px; font-family: var(--dr-font-mono); font-size: 13px; overflow-wrap: anywhere; }
+  .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+  .tool { display: flex; flex-direction: column; gap: 14px; padding: 28px; border: 1px solid var(--dr-border); border-radius: 16px; background: #fff; color: var(--dr-text); }
+  .tool-top { flex-wrap: wrap; }
+  .resources { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+  .resources li { font-size: 13px; font-weight: 500; background: var(--dr-tint); border-radius: 6px; padding: 5px 10px; }
+  .tool-image { font-family: var(--dr-font-mono); font-size: 13px; overflow-wrap: anywhere; }
+  .tool-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--dr-border); font-size: 15px; font-weight: 600; }
+  .tool-actions .muted { color: var(--dr-muted); }
+  .guides { font-size: 16px; }
+  .tool-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .tool-name { margin: 0; font-family: var(--dr-font-mono); font-weight: 500; font-size: 20px; color: var(--dr-navy); overflow-wrap: anywhere; }
+  .version { font-family: var(--dr-font-mono); font-size: 12px; color: var(--dr-muted); overflow-wrap: anywhere; }
+  .tool-desc { font-size: 15px; line-height: 1.5; }
+  .scroll { border: 1px solid var(--dr-border); border-radius: 12px; background: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--dr-border); }
+  thead th { background: var(--dr-tint); color: var(--dr-navy); font-family: var(--dr-font-head); font-size: 13px; white-space: nowrap; }
+  tbody th { font-family: var(--dr-font-mono); font-weight: 500; font-size: 14px; white-space: nowrap; }
+  td { text-align: center; }
+  td.yes { color: var(--dr-ok); font-weight: 700; }
+  td.no { color: var(--dr-muted); }
+  tbody tr:last-child > * { border-bottom: 0; }
+  @media (max-width: 640px) {
+    .head { padding: 48px 0 32px; }
+    .block { padding: 48px 0; }
+  }
+</style>

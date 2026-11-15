@@ -1,0 +1,79 @@
+---
+/** Site header. `active` marks the current top-level nav item. */
+interface Props {
+  active?: 'projects' | 'principles';
+}
+const { active } = Astro.props;
+---
+
+<header class="site-header">
+  <div class="dr-container bar">
+    <a class="brand" href="/" aria-label="Datarocks open source, home">
+      <img src="/datarocks-logo.svg" alt="Datarocks" height="28" />
+      <span class="suffix">/ open source</span>
+    </a>
+    <nav aria-label="Main">
+      <a href="/#projects" aria-current={active === 'projects' ? 'page' : undefined}>Projects</a>
+      <a href="/#principles" aria-current={active === 'principles' ? 'page' : undefined}>How we build</a>
+      <a href="https://github.com/datarocks-ag">GitHub <span aria-hidden="true">↗</span></a>
+      <a class="cta" href="https://datarocks.ch">datarocks.ch <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    background: #fff;
+    border-bottom: 1px solid var(--dr-border);
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    text-decoration: none;
+  }
+  .brand img {
+    display: block;
+    height: 28px;
+    width: auto;
+  }
+  .suffix {
+    font-family: var(--dr-font-mono);
+    font-size: 0.875rem;
+    color: var(--dr-muted);
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+  }
+  nav a {
+    color: var(--dr-navy);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  nav a:hover,
+  nav a[aria-current='page'] {
+    color: var(--dr-accent);
+  }
+  nav a.cta {
+    background: var(--dr-navy);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+  }
+  nav a.cta:hover {
+    background: var(--dr-navy-deep);
+    color: #fff;
+  }
+</style>

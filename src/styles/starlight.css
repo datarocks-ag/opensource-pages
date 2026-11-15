@@ -1,0 +1,46 @@
+@import '@fontsource/montserrat/500.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/700.css';
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/600.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import './tokens.css';
+
+:root {
+  --sl-font: var(--dr-font-body);
+  --sl-font-system-mono: var(--dr-font-mono);
+  --sl-font-mono: var(--dr-font-mono);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--dr-font-head);
+}
+
+/* Light mode */
+:root[data-theme='light'] {
+  --sl-color-accent-low: var(--dr-tint);
+  --sl-color-accent: var(--dr-accent);
+  --sl-color-accent-high: var(--dr-navy);
+  --sl-color-white: var(--dr-navy-deep);
+  --sl-color-gray-1: var(--dr-navy);
+  --sl-color-gray-2: var(--dr-text);
+  --sl-color-gray-3: var(--dr-muted);
+  --sl-color-gray-4: var(--dr-border-strong);
+  --sl-color-gray-5: var(--dr-border);
+  --sl-color-gray-6: var(--dr-tint);
+  --sl-color-gray-7: var(--dr-bg);
+  --sl-color-black: #ffffff;
+}
+
+/* Dark mode: brand-tinted, lighter accent for contrast on dark surfaces */
+:root:not([data-theme='light']) {
+  --sl-color-accent-low: var(--dr-navy-deep);
+  --sl-color-accent: #5b4dff;
+  --sl-color-accent-high: #c4c0ff;
+  --sl-color-black: var(--dr-code-bg);
+}

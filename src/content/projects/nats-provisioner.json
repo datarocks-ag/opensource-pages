@@ -1,0 +1,38 @@
+{
+  "repo": "nats-provisioner",
+  "name": "NATS",
+  "collection": "provisioners",
+  "order": 3,
+  "tagline": "JetStream streams and consumers, with warnings when immutable fields drift.",
+  "highlights": [],
+  "resources": [
+    "streams",
+    "consumers"
+  ],
+  "features": [
+    {
+      "title": "Streams and consumers",
+      "body": "Idempotent provisioning of JetStream streams and their consumers."
+    },
+    {
+      "title": "Strategy",
+      "body": "update or create — globally or per stream."
+    },
+    {
+      "title": "Day durations",
+      "body": "Durations accept Go syntax and day notation such as 7d."
+    },
+    {
+      "title": "Immutable field warnings",
+      "body": "Warns on mismatched storage, retention, deny_delete and deny_purge."
+    },
+    {
+      "title": "Resilient and observable",
+      "body": "Exponential backoff for NATS connectivity; structured JSON logs."
+    }
+  ],
+  "configExample": {
+    "path": "config.example.yaml",
+    "startLine": 7
+  }
+}
