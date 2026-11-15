@@ -46,6 +46,7 @@ export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
   const tree = unified().use(remarkParse).use(remarkFrontmatter, ['yaml']).use(remarkGfm).parse(source) as Root;
 
   removeBadges(tree);
+  if (ctx.filePath === 'CHANGELOG.md') removeUnreleased(tree);
   visit(tree, (node) => {
     if (node.type === 'link' || node.type === 'definition') node.url = rewriteUrl(node.url, ctx, false);
     else if (node.type === 'image') node.url = rewriteUrl(node.url, ctx, true);
@@ -225,6 +226,28 @@ function plainText(node: Nodes): string {
 }
 
 /** Takes the first top-level H1 out of the tree and returns its text. */
+const UNRELEASED = /^\[?unreleased\]?$/i;
+
+/**
+ * Drops the Keep a Changelog "Unreleased" section and its compare-link definition: the site shows
+ * docs as of the release tag, so changes not yet released do not belong there.
+ */
+function removeUnreleased(tree: Root): void {
+  const start = tree.children.findIndex((n) => n.type === 'heading' && UNRELEASED.test(plainText(n).trim()));
+  if (start !== -1) {
+    const depth = (tree.children[start] as Heading).depth;
+    let end = start + 1;
+    while (end < tree.children.length) {
+      const n = tree.children[end];
+      if (n.type === 'heading' && n.depth <= depth) break;
+      if (n.type === 'definition') break;
+      end++;
+    }
+    tree.children.splice(start, end - start);
+  }
+  tree.children = tree.children.filter((n) => !(n.type === 'definition' && UNRELEASED.test(n.label ?? n.identifier)));
+}
+
 function extractTitle(tree: Root): string | null {
   const i = tree.children.findIndex((n) => n.type === 'heading' && (n as Heading).depth === 1);
   if (i === -1) return null;
