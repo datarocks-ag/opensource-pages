@@ -77,6 +77,38 @@ test('project page without released docs links to README at the tag', async () =
   expect(html).toContain('docker pull ghcr.io/datarocks-ag/keycloak-provisioner:1.13.0');
 });
 
+test('README fallback is labelled "Documentation on GitHub" and opens externally', async () => {
+  const html = await renderProject('keycloak-provisioner');
+  expect(html.match(/Documentation on GitHub/g)).toHaveLength(2);
+  expect(html).not.toContain('Read the docs');
+  const links = [...html.matchAll(/<a [^>]*README\.md"[^>]*>/g)].map((m) => m[0]);
+  expect(links).toHaveLength(2);
+  for (const l of links) expect(l).toMatch(/target="_blank"[^>]*rel="noopener noreferrer"|rel="noopener noreferrer"[^>]*target="_blank"/);
+});
+
+test('project page with docs keeps the plain "Documentation" label', async () => {
+  const html = await renderProject('postgres-provisioner');
+  expect(html).not.toContain('Documentation on GitHub');
+  expect(html).toContain('Read the docs');
+});
+
+test('collection tool cards carry resource chips, the image and Details / GitHub actions', async () => {
+  const html = await container.renderToString(CollectionPage, { props: { collection } });
+  const pg = project('postgres-provisioner');
+  expect(html).toContain('aria-label="Provisions"');
+  for (const r of pg.resources ?? []) expect(html).toContain(`>${r}</li>`);
+  expect(html).toContain('ghcr.io/datarocks-ag/postgres-provisioner</code>');
+  expect(html).toContain('Details →');
+  expect(html).toContain('href="/postgres-provisioner/"');
+  expect(html).toContain('href="https://github.com/datarocks-ag/postgres-provisioner"');
+});
+
+test('collection page links the committed guides', async () => {
+  const html = await container.renderToString(CollectionPage, { props: { collection } });
+  expect(html).toContain('href="/provisioners/guides/compose-stack/"');
+  expect(html).toContain('href="/provisioners/guides/"');
+});
+
 test('project page without any release hides version chip and pulls :latest', async () => {
   const html = await renderProject('nats-provisioner');
   expect(html).toContain('ghcr.io/datarocks-ag/nats-provisioner:latest');
