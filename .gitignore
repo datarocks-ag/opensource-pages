@@ -4,3 +4,4 @@ dist/
 .DS_Store
 src/generated/
 src/content/docs/*/docs/
+.build-test-*/
