@@ -18,7 +18,7 @@ const collections = loadCollections().map((collection) => ({
 }));
 const standalone = projects.filter((p) => p.collection === undefined).map((p) => ({ ...p, version: getRelease(p.repo).version }));
 
-const facts = [`${projects.length} projects`, 'MIT licensed', 'Written in Go', 'Images on ghcr.io', 'CI on every repo'];
+const facts = [`${projects.length} projects`, 'MIT licensed'];
 
 // Example traffic for the proxy illustration, not project data.
 const outcomes = [

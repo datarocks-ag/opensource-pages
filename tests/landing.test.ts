@@ -28,6 +28,7 @@ beforeAll(async () => {
 test('facts strip counts projects from data', () => {
   expect(html).toContain(`${loadProjects().length} projects`);
   expect(html).toContain('MIT licensed');
+  expect(html).not.toContain('Written in Go');
 });
 
 test('provisioners card lists six tools with release versions', () => {
