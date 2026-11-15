@@ -16,6 +16,7 @@ export default defineConfig({
       components: {
         SiteTitle: './src/components/starlight/SiteTitle.astro',
         Footer: './src/components/starlight/Footer.astro',
+        Header: './src/components/starlight/Header.astro',
         Sidebar: './src/components/starlight/Sidebar.astro',
       },
       plugins: [starlightSidebarTopics(sidebarTopics(loadProjects(), getRelease))],
