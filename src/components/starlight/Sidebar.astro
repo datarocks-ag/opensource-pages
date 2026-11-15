@@ -1,0 +1,26 @@
+---
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import DocsSelector from './DocsSelector.astro';
+
+/**
+ * Replaces the starlight-sidebar-topics list with the project selector. From the md breakpoint up,
+ * the selector sits in the header (SiteTitle.astro); below it, the header is too narrow, so it
+ * leads the sidebar menu instead.
+ */
+---
+
+<div class="dr-sidebar-selector md:sl-hidden">
+  <DocsSelector />
+</div>
+<Default><slot /></Default>
+
+<style>
+  /* No `display` here: it would outrank the `md:sl-hidden` utility that hides this from md up. */
+  .dr-sidebar-selector {
+    margin-bottom: 1rem;
+  }
+  .dr-sidebar-selector :global(select) {
+    width: 100%;
+    max-width: none;
+  }
+</style>

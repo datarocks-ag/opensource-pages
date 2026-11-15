@@ -193,6 +193,20 @@ describe('repo whose GitHub API call failed', () => {
   });
 });
 
+describe('docs selector', () => {
+  test('header selector lists every docs topic and marks the current project', () => {
+    const h = html('/postgres-provisioner/docs');
+    const select = h.match(/<select[^>]*data-docs-selector[^>]*>[\s\S]*?<\/select>/)?.[0] ?? '';
+    expect(select).toMatch(/<option value="\/postgres-provisioner\/docs\/"[^>]*selected[^>]*>postgres-provisioner · v1\.2\.3<\/option>/);
+    expect(select).toContain('value="/provisioners/guides/"');
+    expect(h).toContain('aria-label="Project docs"');
+  });
+
+  test('sidebar no longer lists the topics', () => {
+    expect(html('/postgres-provisioner/docs')).not.toContain('class="starlight-sidebar-topics"');
+  });
+});
+
 describe('links', () => {
   test('links leaving the docs point to GitHub at the release tag', () => {
     const h = html('/postgres-provisioner/docs/guide/setup');

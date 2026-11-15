@@ -1,5 +1,7 @@
 ---
-/** Docs header title: the Data Rocks logo plus "/ docs", linking back to the landing page. */
+import DocsSelector from './DocsSelector.astro';
+
+/** Docs header title: the Data Rocks logo plus "/ docs", linking back to the landing page, and the project selector. */
 ---
 
 <a href="/" class="dr-site-title">
@@ -7,6 +9,7 @@
   <span class="dr-site-title__docs" aria-hidden="true">/ docs</span>
   <span class="sr-only">docs</span>
 </a>
+<DocsSelector class="sl-hidden md:sl-flex" />
 
 <style>
   .dr-site-title {
