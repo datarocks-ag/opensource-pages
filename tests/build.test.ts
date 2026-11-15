@@ -30,13 +30,19 @@ const fixture = (repo: string): FakeRepo => {
     license: 'Apache-2.0',
     changelog: `# Changelog\n\n## 1.2.3\n\n- Fix ${repo}\n`,
     files: {
-      [`${dir}/index.md`]: `# ${repo} docs\n\nSee the [guide](guide/setup.md).\n`,
+      [`${dir}/index.md`]: `# ${repo} docs\n\nSee the [guide](guide/setup.md) and [upgrading](upgrading-to-2.0.md).\n`,
       [`${dir}/guide/setup.md`]: [
         '# Setup',
         '',
         '[readme](../../README.md) · [source](../../src/main.go) · [changelog](../../CHANGELOG.md) · [home](https://example.com/x)',
         '',
       ].join('\n'),
+      [`${dir}/howto/migrate.md`]: '# Migrate\n\nSteps.\n',
+      [`${dir}/faq.md`]: '# FAQ\n\nQuestions.\n',
+      [`${dir}/getting-started.md`]: '# Getting started\n\nBegin.\n',
+      // Dot and uppercase in file names: link target and published route must agree.
+      [`${dir}/upgrading-to-2.0.md`]: '# Upgrading to 2.0\n\nBack to the [setup](guide/setup.md) or the [architecture](ARCHITECTURE.md).\n',
+      [`${dir}/ARCHITECTURE.md`]: '# Architecture\n\nSee [upgrading](upgrading-to-2.0.md#steps).\n',
       // No heading and no frontmatter: the title must come from the file name.
       [`${dir}/untitled-page.md`]: 'Just a paragraph without any heading.\n',
     },
@@ -194,6 +200,21 @@ describe('links', () => {
     expect(h).toContain('href="https://github.com/datarocks-ag/postgres-provisioner/blob/v1.2.3/src/main.go"');
     expect(h).toContain('href="/postgres-provisioner/docs/changelog/"');
     expect(h).toContain('href="https://example.com/x"');
+  });
+
+  test('dotted and uppercase doc names are linked at the route they are published under', () => {
+    const h = html('/postgres-provisioner/docs');
+    expect(h).toContain('href="/postgres-provisioner/docs/upgrading-to-2-0/"');
+    expect(existsSync(page('/postgres-provisioner/docs/upgrading-to-2-0'))).toBe(true);
+    expect(existsSync(page('/postgres-provisioner/docs/architecture'))).toBe(true);
+  });
+
+  test('docs sidebar is grouped, with a GitHub link in the top bar', () => {
+    const h = html('/postgres-provisioner/docs');
+    const order = ['Getting started', 'Reference', 'How-tos', 'Help'].map((g) => h.search(new RegExp(`<span class="large"[^>]*>${g}</span>`)));
+    expect(order.every((i) => i >= 0), 'all groups present').toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(h).toContain('href="https://github.com/datarocks-ag"');
   });
 
   test('every internal href resolves to a file in dist', () => {
