@@ -19,12 +19,12 @@ beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), 'sync-')); });
 afterEach(() => rmSync(tmp, { recursive: true, force: true }));
 
 test('docs and changelog are written from the release tag', async () => {
-  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', license: 'Apache-2.0', files: { 'docs/index.md': '# PG\n\n[c](../CHANGELOG.md)', 'docs/guide/a.mdx': 'A', 'docs/img.png': 'x' }, changelog: '# Changelog\n\nSee [license](LICENSE).' } });
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', license: 'Apache-2.0', files: { 'docs/index.md': '# PG\n\n[c](../CHANGELOG.md)', 'docs/guide/a.md': 'A', 'docs/img.png': 'x' }, changelog: '# Changelog\n\nSee [license](LICENSE).' } });
   const info = await syncProject(pg, gh, tmp);
   expect(info).toMatchObject({ version: 'v2.0.0', tag: 'v2.0.0', license: 'Apache-2.0', docsAvailable: true, changelogAvailable: true, warnings: [] });
   expect(gh.calls.listFiles).toEqual([['postgres-provisioner', 'v2.0.0', 'docs']]);
-  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8')).toMatch(/^---\ntitle: "PG"\neditUrl: .*\/edit\/main\/docs\/index\.md\n---\n\n\[c\]\(\/postgres-provisioner\/docs\/changelog\/\)/);
-  expect(existsSync(join(tmp, 'postgres-provisioner/docs/guide/a.mdx'))).toBe(true);
+  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8')).toMatch(/^---\ntitle: "PG"\neditUrl: .*\/edit\/main\/docs\/index\.md\nslug: "postgres-provisioner\/docs"\n---\n\n\[c\]\(\/postgres-provisioner\/docs\/changelog\/\)/);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs/guide/a.md'))).toBe(true);
   expect(existsSync(join(tmp, 'postgres-provisioner/docs/img.png'))).toBe(false);
   expect(readFileSync(join(tmp, 'postgres-provisioner/docs/changelog.md'), 'utf8')).toMatch(/title: "Changelog"[\s\S]*\]\(https:\/\/github\.com\/datarocks-ag\/postgres-provisioner\/blob\/v2\.0\.0\/LICENSE\)/);
 });
@@ -87,7 +87,7 @@ test('github client maps 404 to null and sends the token', async () => {
   await expect(gh.readFile('r', 'v1', 'x')).rejects.toBeInstanceOf(GitHubError);
 });
 
-test('failure after some files were written removes partial docs', async () => {
+test('failure while reading docs keeps the release and publishes no partial docs', async () => {
   const base = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/a.md': 'A', 'docs/b.md': 'B' } } });
   let reads = 0;
   const gh = { ...base, async readFile(repo: string, ref: string, path: string) {
@@ -95,8 +95,8 @@ test('failure after some files were written removes partial docs', async () => {
     return base.readFile(repo, ref, path);
   } };
   const info = await syncProject(pg, gh, tmp);
-  expect(info).toMatchObject({ version: null, docsAvailable: false });
-  expect(info.warnings[0]).toMatch(/502/);
+  expect(info).toMatchObject({ version: 'v2.0.0', docsAvailable: false });
+  expect(info.warnings.join()).toMatch(/502/);
   expect(existsSync(join(tmp, 'postgres-provisioner/docs'))).toBe(false);
 });
 
@@ -208,4 +208,96 @@ test('README fallback transport error keeps release and docs, with a warning', a
   expect(info).toMatchObject({ version: 'v2.0.0', docsAvailable: true, changelogAvailable: true });
   expect(info.warnings.join()).toMatch(/README\.md.*403/);
   expect(existsSync(join(tmp, 'docs/postgres-provisioner/docs/changelog.md'))).toBe(true);
+});
+
+const keptRelease = { version: 'v2.0.0', tag: 'v2.0.0', publishedAt: '2026-01-01T00:00:00Z', license: 'Apache-2.0' };
+const docsRepo = () => fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', license: 'Apache-2.0', files: { 'docs/a.md': '# A', 'docs/b.md': '# B' }, changelog: '# C' } });
+const docsDir = () => join(tmp, 'docs/postgres-provisioner/docs');
+
+test('license transport error keeps release and docs, with a warning', async () => {
+  const gh = docsRepo();
+  gh.license = async () => { throw new GitHubError(503, 'https://api.github.com/repos/x'); };
+  const info = await syncProject(pg, gh, join(tmp, 'docs'));
+  expect(info).toMatchObject({ version: 'v2.0.0', tag: 'v2.0.0', license: null, docsAvailable: true, changelogAvailable: true });
+  expect(info.warnings.join()).toMatch(/license.*503/);
+});
+
+test('license transport error with no release still reports no release', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: null } });
+  gh.license = async () => { throw new GitHubError(503, 'https://api.github.com/repos/x'); };
+  const info = await syncProject(pg, gh, join(tmp, 'docs'));
+  expect(info).toMatchObject({ version: null, license: null });
+  expect(info.warnings.join()).toMatch(/no release[\s\S]*503|503[\s\S]*no release/);
+});
+
+test('tree listing transport error keeps release data and drops docs', async () => {
+  const gh = docsRepo();
+  gh.listFiles = async () => { throw new GitHubError(502, 'https://api.github.com/trees'); };
+  const info = await syncProject(pg, gh, join(tmp, 'docs'));
+  expect(info).toMatchObject({ ...keptRelease, docsAvailable: false, changelogAvailable: false });
+  expect(info.warnings.join()).toMatch(/docs.*502/);
+  expect(existsSync(docsDir())).toBe(false);
+});
+
+test('truncated tree keeps release data and drops docs', async () => {
+  const gh = docsRepo();
+  gh.listFiles = async () => { throw new TruncatedTreeError('postgres-provisioner', 'v2.0.0'); };
+  const info = await syncProject(pg, gh, join(tmp, 'docs'));
+  expect(info).toMatchObject({ ...keptRelease, docsAvailable: false, changelogAvailable: false });
+  expect(info.warnings.join()).toMatch(/truncated/i);
+});
+
+test('CHANGELOG.md read error keeps docs and release, without a changelog page', async () => {
+  const info = await syncProject(pg, failingRead('CHANGELOG.md', docsRepo()), join(tmp, 'docs'));
+  expect(info).toMatchObject({ ...keptRelease, docsAvailable: true, changelogAvailable: false });
+  expect(info.warnings.join()).toMatch(/CHANGELOG\.md.*403/);
+  expect(existsSync(join(docsDir(), 'changelog.md'))).toBe(false);
+  expect(existsSync(join(docsDir(), 'a.md'))).toBe(true);
+});
+
+test('docs page read error keeps release data and removes the partial docs', async () => {
+  const info = await syncProject(pg, failingRead('docs/b.md', docsRepo()), join(tmp, 'docs'));
+  expect(info).toMatchObject({ ...keptRelease, docsAvailable: false, changelogAvailable: false });
+  expect(info.warnings.join()).toMatch(/403.*docs\/b\.md/);
+  expect(existsSync(docsDir())).toBe(false);
+});
+
+test('local write errors are not reported as fetch failures', async () => {
+  writeFileSync(join(tmp, 'docs'), 'a file where the docs root should be');
+  const info = await syncProject(pg, docsRepo(), join(tmp, 'docs'));
+  expect(info.version).toBeNull();
+  expect(info.warnings.join()).toMatch(/sync failed/);
+  expect(info.warnings.join()).not.toMatch(/could not be fetched/);
+});
+
+test('.mdx files are skipped with a warning', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/index.md': '# PG', 'docs/x.mdx': 'import X from "x"\n\n<X />' } } });
+  const info = await syncProject(pg, gh, tmp);
+  expect(info.docsAvailable).toBe(true);
+  expect(info.warnings.join()).toMatch(/docs\/x\.mdx skipped/);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs/x.mdx'))).toBe(false);
+  expect(gh.calls.readFile.map((c) => c[2])).not.toContain('docs/x.mdx');
+});
+
+test('a file with unparseable frontmatter is skipped with a warning; the rest is published', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/index.md': '# PG', 'docs/bad.md': '---\ntitle: "open\n---\nBody' } } });
+  const info = await syncProject(pg, gh, tmp);
+  expect(info).toMatchObject({ version: 'v2.0.0', docsAvailable: true });
+  expect(info.warnings.join()).toMatch(/docs\/bad\.md skipped, unusable frontmatter/);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs/bad.md'))).toBe(false);
+  expect(existsSync(join(tmp, 'postgres-provisioner/docs/index.md'))).toBe(true);
+});
+
+test('repo frontmatter is reduced to title, description and sidebar on disk', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/index.md': '---\ntitle: T\nsidebar: 3\ntemplate: splash\n---\nBody' } } });
+  await syncProject(pg, gh, tmp);
+  const out = readFileSync(join(tmp, 'postgres-provisioner/docs/index.md'), 'utf8');
+  expect(out).not.toMatch(/sidebar|template/);
+  expect(out).toContain('title: "T"');
+});
+
+test('dotted file names are written under their original name with an explicit slug', async () => {
+  const gh = fakeClient({ 'postgres-provisioner': { release: 'v2.0.0', files: { 'docs/index.md': '# PG', 'docs/upgrading-to-2.0.md': '# Up' } } });
+  await syncProject(pg, gh, tmp);
+  expect(readFileSync(join(tmp, 'postgres-provisioner/docs/upgrading-to-2.0.md'), 'utf8')).toContain('slug: "postgres-provisioner/docs/upgrading-to-2-0"');
 });

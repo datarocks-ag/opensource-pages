@@ -2,7 +2,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import type { ProjectData } from '../../src/lib/project-data.ts';
 import type { GitHubClient } from './github.ts';
-import { rewriteMarkdown } from './rewrite.ts';
+import { docSlug } from '../../src/lib/doc-slug.ts';
+import { FrontmatterError, rewriteMarkdown } from './rewrite.ts';
 
 /** What the site knows about a repo's latest release. Written to `releases.json`. */
 export interface ReleaseInfo {
@@ -22,7 +23,8 @@ function emptyInfo(repo: string, warnings: string[] = []): ReleaseInfo {
 
 /**
  * Fetches release, license, docs and changelog of one project at its latest release tag and
- * writes docs under `<docsRoot>/<repo>/docs`. Any failure becomes a warning on an all-null result.
+ * writes docs under `<docsRoot>/<repo>/docs`. A failed release fetch becomes a warning on an all-null result;
+ * a failed license, docs, changelog or example fetch only drops that part and keeps the release.
  */
 export async function syncProject(
   p: ProjectData,
@@ -50,62 +52,17 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string, examples
   rmSync(docsDir, { recursive: true, force: true });
   if (examplesRoot) rmSync(exampleFile(examplesRoot, p.repo), { force: true });
 
+  // Release data is primary: a failure here fails the project. Everything fetched afterwards is optional.
   const release = await gh.latestRelease(p.repo);
-  const license = await gh.license(p.repo);
+  const warnings: string[] = [];
+  const license = await optionalLicense(p, gh, warnings);
   if (!release) {
-    return { ...emptyInfo(p.repo, [`${p.repo}: no release found`]), license };
+    return { ...emptyInfo(p.repo, [`${p.repo}: no release found`, ...warnings]), license };
   }
   const { tag } = release;
-  const warnings: string[] = [];
 
-  // The changelog page lives inside the docs folder, so it only exists when there are docs.
-  const docsPrefix = `${p.docsPath.replace(/\/+$/, '')}/`;
-  const files = (await gh.listFiles(p.repo, tag, p.docsPath)).filter((f) => /\.mdx?$/.test(f));
-  const changelog = files.length > 0 ? await gh.readFile(p.repo, tag, 'CHANGELOG.md') : null;
-  const base = { repo: p.repo, tag, docsPath: p.docsPath, changelogOnSite: changelog !== null };
-
-  let written = 0;
-  for (const filePath of files) {
-    const source = await gh.readFile(p.repo, tag, filePath);
-    if (source === null) {
-      warnings.push(`${p.repo}: ${filePath} listed but not readable at ${tag}`);
-      continue;
-    }
-    write(join(docsDir, posix.relative(docsPrefix, filePath)), rewriteMarkdown(source, { ...base, filePath }));
-    written++;
-  }
-  if (written === 0) warnings.push(`${p.repo}: no docs found in ${p.docsPath}/ at ${tag}`);
-
-  // Without a docs landing page the README stands in, so /<repo>/docs/ is never empty.
-  if (written > 0 && !files.some((f) => /^index\.mdx?$/i.test(posix.relative(docsPrefix, f)))) {
-    // Optional extra: a transport error must not discard the docs already written.
-    try {
-      const readme = await gh.readFile(p.repo, tag, 'README.md');
-      if (readme === null) warnings.push(`${p.repo}: docs have no index.md and no README.md at ${tag}`);
-      else write(join(docsDir, 'index.md'), rewriteMarkdown(readme, { ...base, filePath: 'README.md' }));
-    } catch (e) {
-      warnings.push(`${p.repo}: README.md fallback for docs index failed: ${describeError(e)}`);
-    }
-  }
-
-  if (p.configExample && examplesRoot) {
-    // The excerpt is optional: a failed fetch only omits it.
-    try {
-      const source = await gh.readFile(p.repo, tag, p.configExample.path);
-      if (source === null) warnings.push(`${p.repo}: configExample ${p.configExample.path} not found at ${tag}`);
-      else write(exampleFile(examplesRoot, p.repo), `${excerpt(source, p.configExample)}\n`);
-    } catch (e) {
-      warnings.push(`${p.repo}: configExample ${p.configExample.path} could not be fetched: ${describeError(e)}`);
-    }
-  }
-
-  let changelogAvailable = false;
-  if (written > 0) {
-    if (changelog !== null) {
-      write(join(docsDir, 'changelog.md'), rewriteMarkdown(changelog, { ...base, filePath: 'CHANGELOG.md' }));
-      changelogAvailable = true;
-    } else warnings.push(`${p.repo}: no CHANGELOG.md at ${tag}`);
-  }
+  const docs = await syncDocs(p, gh, tag, docsDir, warnings);
+  if (examplesRoot) await syncConfigExample(p, gh, tag, examplesRoot, warnings);
 
   return {
     repo: p.repo,
@@ -113,10 +70,150 @@ async function sync(p: ProjectData, gh: GitHubClient, docsRoot: string, examples
     tag,
     publishedAt: release.publishedAt,
     license,
-    docsAvailable: written > 0,
-    changelogAvailable,
+    docsAvailable: docs.written > 0,
+    changelogAvailable: docs.changelogAvailable,
     warnings,
   };
+}
+
+async function optionalLicense(p: ProjectData, gh: GitHubClient, warnings: string[]): Promise<string | null> {
+  try {
+    return await gh.license(p.repo);
+  } catch (e) {
+    warnings.push(`${p.repo}: license could not be fetched: ${describeError(e)}`);
+    return null;
+  }
+}
+
+interface FetchedDocs {
+  pages: { path: string; source: string }[];
+  changelog: string | null;
+}
+
+/** Fetches every docs page and the changelog. Throws on any transport error; nothing is written here. */
+async function fetchDocs(p: ProjectData, gh: GitHubClient, tag: string, warnings: string[]): Promise<FetchedDocs> {
+  const listed = await gh.listFiles(p.repo, tag, p.docsPath);
+  for (const f of listed.filter((f) => /\.mdx$/.test(f))) {
+    warnings.push(`${p.repo}: ${f} skipped, .mdx is not supported in synced docs`);
+  }
+  const files = listed.filter((f) => /\.md$/.test(f));
+
+  // The changelog page lives inside the docs folder, so it is only read when there are docs.
+  let changelog: string | null = null;
+  if (files.length > 0) {
+    try {
+      changelog = await gh.readFile(p.repo, tag, 'CHANGELOG.md');
+    } catch (e) {
+      warnings.push(`${p.repo}: CHANGELOG.md could not be fetched, treating it as absent: ${describeError(e)}`);
+    }
+  }
+
+  const pages: FetchedDocs['pages'] = [];
+  for (const path of files) {
+    const source = await gh.readFile(p.repo, tag, path);
+    if (source === null) warnings.push(`${p.repo}: ${path} listed but not readable at ${tag}`);
+    else pages.push({ path, source });
+  }
+  return { pages, changelog };
+}
+
+/**
+ * Writes the docs folder. A fetch failure removes the folder, records a warning and reports no
+ * docs, so the release data stays. Local write errors are not caught here: they are site-side bugs.
+ */
+async function syncDocs(
+  p: ProjectData,
+  gh: GitHubClient,
+  tag: string,
+  docsDir: string,
+  warnings: string[],
+): Promise<{ written: number; changelogAvailable: boolean }> {
+  let fetched: FetchedDocs;
+  try {
+    fetched = await fetchDocs(p, gh, tag, warnings);
+  } catch (e) {
+    rmSync(docsDir, { recursive: true, force: true });
+    warnings.push(`${p.repo}: docs could not be fetched at ${tag}, docs unavailable: ${describeError(e)}`);
+    return { written: 0, changelogAvailable: false };
+  }
+
+  const docsPrefix = `${p.docsPath.replace(/\/+$/, '')}/`;
+  const base = { repo: p.repo, tag, docsPath: p.docsPath, changelogOnSite: fetched.changelog !== null };
+  const slugs = new Set<string>();
+  const publish = (filePath: string, source: string, relative: string): boolean => {
+    const slug = docSlug(p.repo, relative);
+    if (slugs.has(slug)) {
+      warnings.push(`${p.repo}: ${filePath} skipped, its page address ${slug} is already taken`);
+      return false;
+    }
+    let content: string;
+    try {
+      content = rewriteMarkdown(source, { ...base, filePath, slug });
+    } catch (e) {
+      if (!(e instanceof FrontmatterError)) throw e;
+      warnings.push(`${p.repo}: ${filePath} skipped, ${e.message}`);
+      return false;
+    }
+    slugs.add(slug);
+    write(join(docsDir, relative), content);
+    return true;
+  };
+
+  let written = 0;
+  for (const { path, source } of fetched.pages) {
+    const relative = posix.relative(docsPrefix, path);
+    if (publish(path, source, relative)) written++;
+  }
+  if (written === 0) {
+    warnings.push(`${p.repo}: no docs found in ${p.docsPath}/ at ${tag}`);
+    return { written, changelogAvailable: false };
+  }
+
+  // Without a docs landing page the README stands in, so /<repo>/docs/ is never empty.
+  if (!slugs.has(docSlug(p.repo, 'index'))) await readmeIndex(p, gh, tag, publish, warnings);
+
+  let changelogAvailable = false;
+  if (fetched.changelog !== null) changelogAvailable = publish('CHANGELOG.md', fetched.changelog, 'changelog.md');
+  else warnings.push(`${p.repo}: no CHANGELOG.md at ${tag}`);
+  return { written, changelogAvailable };
+}
+
+async function readmeIndex(
+  p: ProjectData,
+  gh: GitHubClient,
+  tag: string,
+  publish: (filePath: string, source: string, relative: string) => boolean,
+  warnings: string[],
+): Promise<void> {
+  let readme: string | null;
+  try {
+    readme = await gh.readFile(p.repo, tag, 'README.md');
+  } catch (e) {
+    warnings.push(`${p.repo}: README.md fallback for docs index failed: ${describeError(e)}`);
+    return;
+  }
+  if (readme === null) warnings.push(`${p.repo}: docs have no index.md and no README.md at ${tag}`);
+  else publish('README.md', readme, 'index.md');
+}
+
+async function syncConfigExample(
+  p: ProjectData,
+  gh: GitHubClient,
+  tag: string,
+  examplesRoot: string,
+  warnings: string[],
+): Promise<void> {
+  if (!p.configExample) return;
+  // The excerpt is optional: a failed fetch only omits it.
+  let source: string | null;
+  try {
+    source = await gh.readFile(p.repo, tag, p.configExample.path);
+  } catch (e) {
+    warnings.push(`${p.repo}: configExample ${p.configExample.path} could not be fetched: ${describeError(e)}`);
+    return;
+  }
+  if (source === null) warnings.push(`${p.repo}: configExample ${p.configExample.path} not found at ${tag}`);
+  else write(exampleFile(examplesRoot, p.repo), `${excerpt(source, p.configExample)}\n`);
 }
 
 function describeError(e: unknown): string {
