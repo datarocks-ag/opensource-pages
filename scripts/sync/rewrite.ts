@@ -19,6 +19,8 @@ export interface RewriteContext {
   changelogOnSite?: boolean;
   /** Site slug the page is published under, written as `slug` frontmatter. Omitted: Starlight derives it. */
   slug?: string;
+  /** Receives non-fatal frontmatter problems, e.g. a repeated key whose later occurrence was dropped. */
+  warn?: (message: string) => void;
 }
 
 /** Repo frontmatter that cannot be parsed; the file must be skipped. */
@@ -50,7 +52,7 @@ export function rewriteMarkdown(source: string, ctx: RewriteContext): string {
     else if (node.type === 'html') node.value = rewriteHtml(node.value, ctx);
   });
 
-  const kept = filterFrontmatter(tree.children[0]?.type === 'yaml' ? tree.children.shift()!.value : '');
+  const kept = filterFrontmatter(tree.children[0]?.type === 'yaml' ? tree.children.shift()!.value : '', ctx.warn);
   const lines = [...kept.lines];
   if (!kept.hasTitle) lines.unshift(`title: ${JSON.stringify(extractTitle(tree) ?? titleFromFile(ctx.filePath))}`);
   lines.push(`editUrl: https://github.com/${ORG}/${ctx.repo}/edit/main/${ctx.filePath}`);
@@ -70,10 +72,13 @@ const SIDEBAR_KEYS = new Set(['order', 'label', 'hidden']);
  * Reduces a YAML frontmatter block to `title`, `description` and `sidebar` (`order`, `label`,
  * `hidden`). Only the plain `key: value` subset is understood, because the sync has no YAML parser;
  * anything else at the top level means the block is unparseable. Values that would not pass the
- * content schema (non-string title, non-numeric order) are dropped.
+ * content schema (non-string title, non-numeric order, empty title or description) are dropped.
+ * A repeated key keeps its first occurrence and is reported through `warn`, because a duplicate
+ * key in the output would fail the build.
  */
-function filterFrontmatter(block: string): { lines: string[]; hasTitle: boolean } {
+function filterFrontmatter(block: string, warn?: (message: string) => void): { lines: string[]; hasTitle: boolean } {
   const out: string[] = [];
+  const seen = new Set<string>();
   let hasTitle = false;
   const rows = block.split(/\r?\n/);
   for (let i = 0; i < rows.length; i++) {
@@ -86,12 +91,23 @@ function filterFrontmatter(block: string): { lines: string[]; hasTitle: boolean 
     while (i + 1 < rows.length && (/^\s+\S/.test(rows[i + 1]) || !rows[i + 1].trim())) nested.push(rows[++i]);
     if (key === 'title' || key === 'description') {
       const value = scalarString(rest.trim());
-      if (value === undefined || nested.some((n) => n.trim())) continue;
+      if (!value?.trim() || nested.some((n) => n.trim())) continue;
+      if (seen.has(key)) {
+        warn?.(`duplicate frontmatter key "${key}" ignored, first occurrence kept`);
+        continue;
+      }
+      seen.add(key);
       if (key === 'title') hasTitle = true;
       out.push(`${key}: ${JSON.stringify(value)}`);
     } else if (key === 'sidebar') {
-      const items = sidebarLines(rest.trim(), nested);
-      if (items.length > 0) out.push('sidebar:', ...items);
+      const items = sidebarLines(rest.trim(), nested, warn);
+      if (items.length === 0) continue;
+      if (seen.has(key)) {
+        warn?.('duplicate frontmatter key "sidebar" ignored, first occurrence kept');
+        continue;
+      }
+      seen.add(key);
+      out.push('sidebar:', ...items);
     }
   }
   return { lines: out, hasTitle };
@@ -116,15 +132,21 @@ function scalarString(raw: string): string | undefined {
   return raw.replace(/\s+#.*$/, '');
 }
 
-function sidebarLines(rest: string, nested: string[]): string[] {
+function sidebarLines(rest: string, nested: string[], warn?: (message: string) => void): string[] {
   if (rest) return [];
   const out: string[] = [];
+  const seen = new Set<string>();
   for (const row of nested) {
     const m = /^\s+([A-Za-z_][\w-]*)\s*:\s*(.+?)\s*$/.exec(row);
     if (!m || !SIDEBAR_KEYS.has(m[1])) continue;
     const value = m[2].replace(/\s+#.*$/, '');
     const ok = m[1] === 'order' ? /^\d+$/.test(value) : m[1] === 'hidden' ? /^(true|false)$/.test(value) : scalarString(value) !== undefined;
     if (!ok) continue;
+    if (seen.has(m[1])) {
+      warn?.(`duplicate frontmatter key "sidebar.${m[1]}" ignored, first occurrence kept`);
+      continue;
+    }
+    seen.add(m[1]);
     out.push(`  ${m[1]}: ${m[1] === 'label' ? JSON.stringify(scalarString(value)) : value}`);
   }
   return out;

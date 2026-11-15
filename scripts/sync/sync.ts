@@ -148,7 +148,7 @@ async function syncDocs(
     }
     let content: string;
     try {
-      content = rewriteMarkdown(source, { ...base, filePath, slug });
+      content = rewriteMarkdown(source, { ...base, filePath, slug, warn: (m) => warnings.push(`${p.repo}: ${filePath}: ${m}`) });
     } catch (e) {
       if (!(e instanceof FrontmatterError)) throw e;
       warnings.push(`${p.repo}: ${filePath} skipped, ${e.message}`);
