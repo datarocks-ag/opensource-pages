@@ -193,3 +193,45 @@ test('mermaid code blocks become escaped diagram containers', () => {
 test('other code blocks stay fenced', () => {
   expect(rewriteMarkdown('# T\n\n```yaml\nkey: value\n```\n', ctx)).toContain('```yaml\nkey: value\n```');
 });
+
+const changelogCtx = { ...ctx, filePath: 'CHANGELOG.md' };
+const changelog = [
+  '# Changelog',
+  '',
+  'All notable changes.',
+  '',
+  '## [Unreleased]',
+  '',
+  '### Added',
+  '',
+  '- work in progress',
+  '',
+  '## [2.0.0] - 2026-10-01',
+  '',
+  '### Changed',
+  '',
+  '- released change',
+  '',
+  '[Unreleased]: https://github.com/datarocks-ag/postgres-provisioner/compare/v2.0.0...HEAD',
+  '[2.0.0]: https://github.com/datarocks-ag/postgres-provisioner/compare/v1.0.0...v2.0.0',
+  '',
+].join('\n');
+
+test('changelog drops the Unreleased section and its link definition', () => {
+  const out = rewriteMarkdown(changelog, changelogCtx);
+  expect(out).not.toMatch(/unreleased/i);
+  expect(out).not.toContain('work in progress');
+  expect(out).toContain('All notable changes.');
+  expect(out).toContain('released change');
+  expect(out).toContain('[2.0.0]: https://github.com/datarocks-ag/postgres-provisioner/compare/v1.0.0...v2.0.0');
+});
+
+test('Unreleased heading without brackets is dropped too', () => {
+  const out = rewriteMarkdown('# Changelog\n\n## Unreleased\n\n- wip\n\n## 1.0.0\n\n- done\n', changelogCtx);
+  expect(out).not.toContain('wip');
+  expect(out).toContain('done');
+});
+
+test('an Unreleased section in other docs is kept', () => {
+  expect(rewriteMarkdown('# Notes\n\n## Unreleased\n\n- wip\n', ctx)).toContain('wip');
+});
