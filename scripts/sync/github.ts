@@ -10,6 +10,18 @@ export class GitHubError extends Error {
   }
 }
 
+/** The git tree listing was truncated by GitHub, so a docs listing would be incomplete. */
+export class TruncatedTreeError extends Error {
+  repo: string;
+  ref: string;
+  constructor(repo: string, ref: string) {
+    super(`git tree of ${repo}@${ref} is truncated; docs listing would be incomplete`);
+    this.name = 'TruncatedTreeError';
+    this.repo = repo;
+    this.ref = ref;
+  }
+}
+
 /** Read-only view of the GitHub REST API, scoped to one owner. */
 export interface GitHubClient {
   /** Latest published release; null when the repo has none (404). */
@@ -57,7 +69,7 @@ export function createGitHubClient(opts: { owner: string; token?: string; fetch?
       const body = await json(`${base(repo)}/git/trees/${encodeURIComponent(ref)}?recursive=1`);
       if (!body) return [];
       if (body.truncated) {
-        throw new Error(`git tree of ${opts.owner}/${repo}@${ref} is truncated; docs listing would be incomplete`);
+        throw new TruncatedTreeError(`${opts.owner}/${repo}`, ref);
       }
       const prefix = `${dir.replace(/\/+$/, '')}/`;
       return (body.tree as { path: string; type: string }[])

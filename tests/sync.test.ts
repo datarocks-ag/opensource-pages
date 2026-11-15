@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import type { ProjectData } from '../src/lib/project-data.ts';
-import { createGitHubClient, GitHubError } from '../scripts/sync/github.ts';
+import { createGitHubClient, GitHubError, TruncatedTreeError } from '../scripts/sync/github.ts';
 import { getRelease } from '../src/lib/releases.ts';
 import { syncAll, syncProject } from '../scripts/sync/sync.ts';
 import { fakeClient } from './fixtures/github/fake-client.ts';
@@ -103,7 +103,10 @@ test('failure after some files were written removes partial docs', async () => {
 test('truncated git tree is an error, not a silent empty listing', async () => {
   const fetchStub = (async () => Response.json({ truncated: true, tree: [] })) as unknown as typeof fetch;
   const gh = createGitHubClient({ owner: 'o', fetch: fetchStub });
-  await expect(gh.listFiles('r', 'v1', 'docs')).rejects.toThrow(/truncated/);
+  const err = await gh.listFiles('r', 'v1', 'docs').catch((e) => e);
+  expect(err).toBeInstanceOf(TruncatedTreeError);
+  expect(err.repo).toBe('o/r');
+  expect(err.message).toMatch(/truncated/);
 });
 
 test('getRelease returns an all-null entry for an unknown repo', () => {
@@ -111,4 +114,26 @@ test('getRelease returns an all-null entry for an unknown repo', () => {
     repo: 'no-such-repo', version: null, tag: null, publishedAt: null, license: null,
     docsAvailable: false, changelogAvailable: false, warnings: [],
   });
+});
+
+test('cleanup failure becomes a second warning instead of escaping', async () => {
+  const docs = join(tmp, 'postgres-provisioner/docs');
+  mkdirSync(docs, { recursive: true });
+  writeFileSync(join(docs, 'old.md'), 'old');
+  chmodSync(docs, 0o500); // entries cannot be removed
+  try {
+    const info = await syncProject(pg, fakeClient({ 'postgres-provisioner': { release: 'v2.0.0' } }), tmp);
+    expect(info.version).toBeNull();
+    expect(info.warnings).toHaveLength(2);
+    expect(info.warnings[0]).toMatch(/sync failed/);
+    expect(info.warnings[1]).toMatch(/could not remove partial docs/);
+  } finally {
+    chmodSync(docs, 0o700);
+  }
+});
+
+test('error cause message is rendered in the warning', async () => {
+  const gh = { ...fakeClient({}), async latestRelease(): Promise<never> { throw new Error('boom', { cause: new Error('socket hang up') }); } };
+  const info = await syncProject(pg, gh, tmp);
+  expect(info.warnings[0]).toMatch(/boom \(cause: socket hang up\)/);
 });

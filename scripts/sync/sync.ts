@@ -28,11 +28,19 @@ export async function syncProject(p: ProjectData, gh: GitHubClient, docsRoot: st
   try {
     return await sync(p, gh, docsRoot);
   } catch (e) {
-    // Never leave partial docs behind: Astro would publish them while releases.json says unavailable.
-    rmSync(join(docsRoot, p.repo, 'docs'), { recursive: true, force: true });
     let reason = e instanceof Error ? e.message : String(e);
-    if (e instanceof Error && e.cause !== undefined) reason += ` (cause: ${String(e.cause)})`;
-    return emptyInfo(p.repo, [`${p.repo}: sync failed: ${reason}`]);
+    if (e instanceof Error && e.cause !== undefined) {
+      const c = e.cause;
+      reason += ` (cause: ${c instanceof Error ? c.message : String(c)})`;
+    }
+    const warnings = [`${p.repo}: sync failed: ${reason}`];
+    // Never leave partial docs behind: Astro would publish them while releases.json says unavailable.
+    try {
+      rmSync(join(docsRoot, p.repo, 'docs'), { recursive: true, force: true });
+    } catch (cleanup) {
+      warnings.push(`${p.repo}: could not remove partial docs: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`);
+    }
+    return emptyInfo(p.repo, warnings);
   }
 }
 
